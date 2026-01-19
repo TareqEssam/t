@@ -107,125 +107,91 @@
         }
         
         /* تنسيقات البحث الجديدة */
-        .search-container {
-            margin-bottom: 20px;
-        }
-        .search-input-group {
-            position: relative;
-        }
-        .search-results {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: none;
-            z-index: 1000;
-        }
-        .search-result-item {
-    padding: 10px 15px;
-    cursor: pointer;
-    border-bottom: 1px solid #e8e8e8;
-    transition: all 0.3s ease;
+        /* --- التعديلات التقنية الضرورية لضمان الظهور --- */
+
+.search-container {
+    margin-bottom: 20px;
+    position: relative; /* ضروري لضبط القائمة المنسدلة نسبةً له */
+}
+
+.search-input-group {
     position: relative;
-    background: linear-gradient(to right, #ffffff 0%, #f8f9ff 100%);
-    margin-bottom: 2px;
-    border-radius: 4px;
-    font-weight: 500;
+    width: 100%;
+}
+
+/* تحديث حاوية النتائج لتكون عائمة (Floating Overlay) */
+.search-results {
+    position: absolute; /* يجعل القائمة تطفو ولا تدفع العناصر للأسفل */
+    top: 100%; /* تظهر مباشرة أسفل حقل الإدخال */
+    left: 0;
+    right: 0;
+    z-index: 99999 !important; /* أعلى قيمة ممكنة لضمان الظهور فوق الخرائط والجداول */
+    max-height: 350px;
+    overflow-y: auto;
+    background-color: #ffffff;
+    border: 2px solid #2196F3;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); /* ظل أقوى للتمييز */
+    display: none; /* يتم التحكم به عبر JS */
+    margin-top: 5px;
+}
+
+/* --- تنسيقات العناصر الجمالية التي أرسلتها (مع تحسينات طفيفة) --- */
+
+.search-result-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+    background: #ffffff;
     color: #2c3e50;
+    display: flex; /* لترتيب النصوص والأوسمة */
+    justify-content: space-between;
+    align-items: center;
 }
 
 .search-result-item:hover {
-    background: linear-gradient(to right, #e3f2fd 0%, #bbdefb 100%);
-    transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
-    border-left: 4px solid #2196F3;
+    background: linear-gradient(to right, #e3f2fd 0%, #f1f8ff 100%);
+    transform: translateX(-5px); /* تحريك لليمين لأن الموقع بالعربي */
+    border-right: 5px solid #2196F3; /* تغيير من اليسار لليمين للتوافق مع العربي */
     color: #1565c0;
-    font-weight: 600;
 }
 
-.search-result-item:active {
-    background: linear-gradient(to right, #bbdefb 0%, #90caf9 100%);
-    transform: translateX(3px);
-}
-
+/* تأثير التمييز عند البحث (Highlight) */
 .search-result-item .highlight {
-    background-color: #ffeb3b;
+    background-color: #fff176;
     color: #000;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 700;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
 }
 
-.search-results {
-    max-height: 300px;
-    overflow-y: auto;
-    border: 2px solid #2196F3;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    background-color: #fff;
-}
-
+/* --- تنسيق شريط التمرير الاحترافي --- */
 .search-results::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 .search-results::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
+    background: #f8f9fa;
 }
 
 .search-results::-webkit-scrollbar-thumb {
     background: #2196F3;
-    border-radius: 4px;
+    border-radius: 10px;
 }
 
-.search-results::-webkit-scrollbar-thumb:hover {
-    background: #1976d2;
+/* --- أوسمة القطاعات الصناعية --- */
+.sector-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-right: 10px; /* المسافة من جهة اليمين */
 }
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-        .sector-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-left: 5px;
-        }
-        .sector-a {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-        .sector-b {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .sector-both {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .activity-details {
-            margin-top: 15px;
-            padding: 15px;
-            border-radius: 5px;
-            display: none;
-        }
-        .activity-details.sector-a {
-            background-color: #e7f3fe;
-            border-left: 4px solid #0d6efd;
-        }
-        .activity-details.sector-b {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-        }
-        .activity-details.sector-both {
-            background-color: #d1f7e4;
-            border-left: 4px solid #198754;
-        }
 
+.sector-a { background-color: #cfe2ff; color: #084298; }
+.sector-b { background-color: #fff3cd; color: #856404; }
+.sector-both { background-color: #d1e7dd; color: #0f5132; }
 /* ========================================
    تنسيقات الأزرار الاحترافية المحسّنة
 ======================================== */
@@ -2626,15 +2592,14 @@ input.bg-success {
         <div class="mb-3">
             <label class="info-label">نوع النشاط</label>
             
-            <!-- حقل البحث الجديد -->
-            <div class="search-container mb-2">
-                <div class="search-input-group">
-                    <input type="text" id="activityTypeSearch" class="form-control" placeholder="ابحث بالاسم أو اكتب وصف للنشاط...">
-
-                    <div id="activityTypeSearchResults" class="search-results mt-1"></div>
-                </div>
-                <small class="text-muted">يمكنك البحث بأي جزء من اسم النشاط</small>
-            </div>
+           <div class="search-container mb-2 position-relative"> 
+    <div class="search-input-group">
+        <input type="text" id="activityTypeSearch" class="form-control" 
+               placeholder="ابحث بالاسم أو اكتب وصف للنشاط..." 
+               autocomplete="off"> <div id="activityTypeSearchResults" class="search-results-overlay mt-1"></div>
+    </div>
+    <small class="text-muted">يمكنك البحث بأي جزء من اسم النشاط (مثال: فندق، ملابس، ورشة)</small>
+</div>
             
             <!-- القائمة المنسدلة الأصلية -->
             <select id="activityTypeSelect" class="form-select" onchange="updateLicenseRequirements()">
