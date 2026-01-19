@@ -54,6 +54,9 @@ function initializeNeuralSearch(inputId, resultsId, selectId, database) {
 /**
  * عرض النتائج القادمة من الفيكتور بتنسيق احترافي
  */
+/**
+ * عرض النتائج القادمة من الفيكتور بتنسيق احترافي
+ */
 function renderVectorResults(results, container, selectElement, inputElement) {
     container.innerHTML = '';
     
@@ -65,29 +68,38 @@ function renderVectorResults(results, container, selectElement, inputElement) {
         // حساب النسبة المئوية للمطابقة
         const matchPercentage = Math.round(result.score * 100);
         
+        // --- الجزء المصلح هنا ---
+        // نقوم بفحص كل الحقول الممكنة للحصول على الاسم الصحيح
+        const activityLabel = result.id || result.text || result.name || "نشاط غير مسمى";
+        const activityValue = result.value || result.id; 
+
         div.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-bold">${result.text}</span>
+                <span class="fw-bold">${activityLabel}</span>
                 <span class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">مطابقة ${matchPercentage}%</span>
             </div>
         `;
 
         div.onclick = () => {
-            // تحديث القائمة المنسدلة الأصلية
-            selectElement.value = result.value;
-            inputElement.value = result.text;
+            // تحديث القائمة المنسدلة والقيمة المعروضة
+            selectElement.value = activityValue;
+            inputElement.value = activityLabel;
             container.style.display = 'none';
             
-            // تشغيل التحديثات المرتبطة بالاختيار في main_logic
+            // إطلاق حدث التغيير لتحديث الجداول والبيانات المرتبطة
             const event = new Event('change');
             selectElement.dispatchEvent(event);
             
+            // تحديث التفاصيل إذا كانت الدالة موجودة
             if (typeof updateActivityDetails === 'function') {
-                updateActivityDetails(result.value);
+                updateActivityDetails(activityValue);
             }
         };
+        // --- نهاية الجزء المصلح ---
+
         container.appendChild(div);
     });
 }
+
 
 console.log("✅ تم تحديث NeuralSearch ليعمل بنظام Vector Bridge");
