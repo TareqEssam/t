@@ -132,33 +132,29 @@ function renderVectorResults(results, container, selectElement, inputElement) {
             div.style.paddingRight = '15px';
         };
 
-        // عند اختيار النشاط
+        // عند اختيار النشاط من نتائج البحث
         div.onclick = () => {
-            console.log("✅ تم اختيار:", label);
+            console.log("✅ تم اختيار النشاط دلالياً:", label);
             
-            // 1. تحديث قيمة القائمة المنسدلة المخفية/الأصلية
-            selectElement.value = value;
-            
-            // 2. تحديث نص حقل البحث
-            inputElement.value = label;
-            
-            // 3. إغلاق القائمة
-            container.style.display = 'none';
-            
-            // 4. إطلاق حدث التغيير (Change) لتنبيه main_logic.js
-            const event = new Event('change', { bubbles: true });
-            selectElement.dispatchEvent(event);
-            
-            // 5. استدعاء مباشر لدالة التحديث إذا كانت متوفرة
-            if (typeof updateActivityDetails === 'function') {
-                updateActivityDetails(value);
+            // استدعاء الدالة المصلحة في app.js لتنفيذ كافة التحديثات (الشاشة 4 و 7)
+            if (typeof window.selectActivityType === 'function') {
+                window.selectActivityType(value, label);
+            } else {
+                // حل احتياطي في حال عدم العثور على الدالة
+                selectElement.value = value;
+                inputElement.value = label;
+                container.style.display = 'none';
+                selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                if (typeof updateActivityDetails === 'function') {
+                    updateActivityDetails(value);
+                }
             }
         };
 
         container.appendChild(div);
     });
 }
-
 // إضافة ستايل بسيط للنتائج للتأكيد على جودة الواجهة
 const style = document.createElement('style');
 style.innerHTML = `
@@ -168,3 +164,4 @@ style.innerHTML = `
 document.head.appendChild(style);
 
 console.log("✅ تم تشغيل NeuralSearch v7.5 بنجاح - نظام ربط المتجهات جاهز");
+
