@@ -1,7 +1,7 @@
 /****************************************************************************
- * 🧠 AI Assistant Core - النسخة المصلحة (V7.2)
- * - حل مشكلة اختفاء الأسماء (Mapping id Field)
- * - تحسين توجيه النيات (Intent Routing) للأنشطة
+ * 🧠 AI Assistant Core - النسخة المصلحة (V7.3)
+ * - حل مشكلة التوجيه الخاطئ (فندق -> توشكى)
+ * - تحسين استخراج الأسماء من حقل ID
  ****************************************************************************/
 
 class AssistantAI {
@@ -25,12 +25,10 @@ class AssistantAI {
     
     initialize() {
         window.addEventListener('vectorEngineReady', () => {
-            console.log('✅ المساعد الذكي ارتبط بمحرك المتجهات (تم إصلاح منطق الحقول)');
+            console.log('✅ المساعد الذكي ارتبط بمحرك المتجهات');
         });
     }
 
-    // ==================== إدارة الذاكرة والسياق ====================
-    
     isFollowUpQuery(text) {
         const followUpWords = ['هناك', 'فيها', 'دي', 'المكان ده', 'الحوافز', 'الشروط', 'النشاط ده', 'عايز افتح', 'كيف', 'ما هي'];
         return followUpWords.some(word => text.includes(word));
@@ -46,7 +44,6 @@ class AssistantAI {
         }
     }
 
-    // ==================== معالجة الاستعلام الذكي ====================
     async getResponse(query) {
         this.stats.totalQueries++;
         const normalized = query.trim();
@@ -67,7 +64,10 @@ class AssistantAI {
         try {
             const results = await window.vEngine.search(text);
             
-            // استخراج أفضل النتائج مع فحص حقل الـ ID (الحل الجذري)
+            // 1. تحديد نية المستخدم (Intent Detection)
+            const isActivityQuery = /انشاء|تشغيل|مصنع|نشاط|فندق|ورشة|صناعة|تراخيص/.test(text);
+
+            // 2. استخراج النتائج
             const topActivity = (results.activities && results.activities.length > 0) ? results.activities[0] : null;
             const topArea = (results.industrial && results.industrial.length > 0) ? results.industrial[0] : null;
 
@@ -80,40 +80,47 @@ class AssistantAI {
                 confidence: 0
             };
 
-            // تحديد "اسم الكيان" المستهدف مع دعم حقل id المكتشف في التشخيص
-            const getActivityName = (act) => act.text || act.name || act.id || "نشاط غير مسمى";
-            const getAreaName = (area) => area.name || area.id || area.text || "منطقة غير مسمى";
+            // دوال استخراج الأسماء مع دعم حقل id
+            const getActivityName = (act) => act.id || act.text || act.name || "نشاط";
+            const getAreaName = (area) => area.id || area.name || area.text || "منطقة صناعية";
 
-            // --- ميزان توجيه الاستعلام (Intent Balancer) ---
-            
-            // الحالة 1: العثور على نشاط (نعطيه الأولوية القصوى)
-            if (topActivity && (topActivity.score > 0.15)) {
+            // 3. منطق اتخاذ القرار (Decision Logic)
+
+            // الحالة أ: إذا كان السؤال عن نشاط (مثل فندق) ووجدنا نتيجة في الأنشطة
+            if (isActivityQuery && topActivity) {
                 const name = getActivityName(topActivity);
-                response.text = `بناءً على طلبك، إليك البيانات المتعلقة بنشاط "${name}":`;
+                response.text = `بناءً على طلبك بخصوص "${name}"، إليك البيانات المتاحة:`;
                 response.confidence = topActivity.score;
+                // إخفاء المناطق من المقدمة إذا كان السؤال صريحاً عن نشاط
+                response.areas = (topActivity.score > 0.5) ? [] : response.areas;
                 this.updateMemory(text, response.text, name);
             } 
-            // الحالة 2: العثور على منطقة صناعية فقط
+            // الحالة ب: إذا وجدنا نشاط بسكور عالي جداً (حتى لو لم تكتشف النية)
+            else if (topActivity && topActivity.score > 0.6) {
+                const name = getActivityName(topActivity);
+                response.text = `إليك تفاصيل نشاط "${name}":`;
+                response.confidence = topActivity.score;
+                this.updateMemory(text, response.text, name);
+            }
+            // الحالة ج: العثور على منطقة صناعية
             else if (topArea) {
                 const name = getAreaName(topArea);
-                // تجميل الاسم: إزالة الأكواد أو الأقواس إذا كان الاسم هو الـ ID
                 const cleanName = name.split('(')[0].replace('المنطقة الصناعية', '').trim();
-                
                 response.text = `لقد وجدت معلومات متعلقة بالمنطقة الصناعية "${cleanName}":`;
                 response.confidence = topArea.score || 0.8;
                 this.updateMemory(text, response.text, name);
             } 
-            // الحالة 3: لم يتم العثور على شيء مؤكد
+            // الحالة د: لا توجد نتائج واضحة
             else {
-                response.text = "لم أجد نتائج مطابقة تماماً لطلبك، إليك أقرب المعلومات المتوفرة:";
-                response.confidence = 0.3;
+                response.text = "عذراً، لم أجد نتائج مطابقة تماماً لطلبك. هل يمكنك تحديد النشاط أو المنطقة بشكل أوضح؟";
+                response.confidence = 0.2;
             }
 
             return response;
 
         } catch (error) {
             console.error("Vector Core Error:", error);
-            return { text: "عذراً، واجهت مشكلة في قراءة قاعدة البيانات.", type: "error" };
+            return { text: "عذراً، واجهت مشكلة في قراءة البيانات.", type: "error" };
         }
     }
 
