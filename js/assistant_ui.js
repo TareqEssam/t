@@ -324,7 +324,7 @@ class AssistantUI {
             const formattedHTML = this.formatter.formatResponse(response);
             
             // عرض الرد
-            this.addMessage('assistant', formattedHTML, true);
+            this.addMessage(formattedHTML, 'assistant');
             
             // نطق الرد (إذا كان في وضع الصوت)
             if (this.currentMode === 'voice' && response.text) {
@@ -337,7 +337,7 @@ class AssistantUI {
             this.showThinking(false);
             
             const errorHTML = this.formatter.createErrorCard('عذراً، حدث خطأ. يمكنك المحاولة مرة أخرى؟');
-            this.addMessage('assistant', errorHTML, true);
+            this.addMessage(errorHTML, 'assistant');
         }
     }
     
@@ -361,30 +361,32 @@ class AssistantUI {
         }
     }
     
-    // ==================== إضافة رسالة (النسخة المحدثة للاستجابة للكائنات) ====================
+    /// ==================== إضافة رسالة (النسخة النهائية المستقرة) ====================
     addMessage(content, sender = 'assistant') {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message message-${sender}`;
         
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
-        
-        // --- الجزء الجوهري للحل الاحترافي ---
+
+        // معالجة المحتوى بناءً على نوعه
         if (typeof content === 'object' && content !== null) {
-            // إذا كان الرد قادماً من المنسق البصري (كائن يحتوي على HTML)
+            // حالة الرد الذكي (كائن يحتوي على نص و HTML)
             bubble.innerHTML = content.text || ""; 
             
-            // إضافة أي عناصر إضافية (مثل الكروت) إذا كانت موجودة في محتوى الرد
             if (content.html) {
                 const extraContent = document.createElement('div');
                 extraContent.innerHTML = content.html;
                 bubble.appendChild(extraContent);
             }
         } else {
-            // إذا كان نصاً عادياً (مثل رسالة المستخدم)
-            bubble.textContent = content;
+            // حالة النص العادي (رسالة المستخدم أو نصوص بسيطة)
+            if (sender === 'user') {
+                bubble.textContent = content; // حماية لرسائل المستخدم
+            } else {
+                bubble.innerHTML = content; // السماح بالتنسيق لرسائل النظام
+            }
         }
-        // -------------------------------------
 
         // إضافة الوقت
         const time = document.createElement('div');
@@ -396,11 +398,25 @@ class AssistantUI {
         
         bubble.appendChild(time);
         messageDiv.appendChild(bubble);
-        
         this.elements.messagesContainer.appendChild(messageDiv);
         
         // تمرير تلقائي للأسفل
         this.scrollToBottom();
+    }
+
+    // ==================== رسالة الترحيب ====================
+    showWelcomeMessage() {
+        const welcomeHTML = `
+            <div class="welcome-card">
+                <div class="welcome-icon">👋</div>
+                <div class="welcome-title">أهلاً بك!</div>
+                <div class="welcome-text">أنا المساعد الذكي لفريق اللجان. يمكنني مساعدتك في الأنشطة والتراخيص.</div>
+                <div class="welcome-actions">
+                    <button onclick="window.assistantUI.sendMessage('مساعدة')">💡 كيف أستخدمك؟</button>
+                </div>
+            </div>`;
+        
+        this.addMessage(welcomeHTML, 'assistant'); // الترتيب الصحيح
     }
     
     // ==================== رسالة الترحيب ====================
@@ -425,7 +441,7 @@ class AssistantUI {
             </div>
         `;
         
-        this.addMessage('assistant', welcomeHTML, true);
+        this.addMessage(welcomeHTML, 'assistant');
     }
     
     // ==================== وضع الصوت ====================
@@ -623,4 +639,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 console.log('✅ assistant_ui.js تم التحميل بنجاح');
+
 
