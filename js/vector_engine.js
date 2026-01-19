@@ -107,7 +107,7 @@ class VectorEngine {
             results[key] = scores
                 .sort((a, b) => b.score - a.score)
                 .slice(0, limit)
-                .filter(r => r.score > 0.35); // عتبة القبول
+                .filter(r => r.score > 0.25); // عتبة القبول
         }
 
         return results;
@@ -117,3 +117,4 @@ class VectorEngine {
 // تصدير نسخة واحدة ثابتة للنظام
 
 window.vEngine = new VectorEngine();
+
