@@ -42,63 +42,62 @@ class AssistantAI {
     }
 
     // ==================== معالجة الاستعلام الذكي ====================
-    async getResponse(query) {
-        this.stats.totalQueries++;
-        const normalized = query.trim();
-        
-        // 1. التعامل مع الأوامر السريعة
-        if (normalized === 'help' || normalized === 'مساعدة') {
-            return this.handleCommand('help');
-        }
-
-        // 2. التحقق من وجود سياق (أسئلة متتابعة)
-        // إذا سأل المستخدم "ما هي الحوافز هناك؟" ندمج السؤال مع الكيان السابق
-        let searchQuery = normalized;
-        if (this.isFollowUpQuery(normalized) && this.currentContext.lastEntity) {
-            searchQuery = `${this.currentContext.lastEntity} ${normalized}`;
-            console.log("🔗 ربط السؤال بالسياق السابق:", searchQuery);
-        }
-
-        // 3. الاستعلام من محرك المتجهات
-        return await this.handleComplexQuery(searchQuery, query);
+async getResponse(query) {
+    this.stats.totalQueries++;
+    const normalized = query.trim();
+    
+    // 1. التعامل مع الأوامر السريعة
+    if (normalized === 'help' || normalized === 'مساعدة') {
+        return this.handleCommand('help');
     }
 
-    isFollowUpQuery(text) {
-        const followUpWords = ['هناك', 'فيها', 'دي', 'المكان ده', 'الحوافز', 'الشروط', 'النشاط ده'];
-        return followUpWords.some(word => text.includes(word));
+    // 2. التحقق من وجود سياق (أسئلة متتابعة)
+    let searchQuery = normalized;
+    if (this.isFollowUpQuery(normalized) && this.currentContext.lastEntity) {
+        searchQuery = `${this.currentContext.lastEntity} ${normalized}`;
+        console.log("🔗 ربط السؤال بالسياق السابق:", searchQuery);
     }
 
-    async handleComplexQuery(searchQuery, original) {
-        if (!window.vEngine || !window.vEngine.isReady) {
-            return { type: 'general', text: 'جاري تهيئة العقل الذكي، لحظات...' };
-        }
+    // 3. الاستعلام من محرك المتجهات 
+    // قمنا بتعديله ليرسل searchQuery فقط ليتوافق مع الدالة الجديدة
+    return await this.handleComplexQuery(searchQuery);
+}
 
+    async handleComplexQuery(text) {
         try {
-            const results = await window.vEngine.search(searchQuery);
+            // تنفيذ البحث الدلالي عبر المحرك
+            const searchResults = await window.vEngine.search(text);
             
-            // تحديد الكيان الأساسي للذاكرة (أول نتيجة من المناطق أو الأنشطة)
-            const topEntity = results.areas[0]?.text || results.activities[0]?.text;
-
-            let response = {
-                type: 'multi_match',
-                activities: results.activities || [],
-                areas: results.areas || [],
-                decision104: results.decision104 || [],
-                text: this.generateResponseText(results, searchQuery),
-                confidence: 0.9
+            // صياغة الرد بناءً على أفضل النتائج (مع فحص الأمان)
+            const response = {
+                text: "",
+                type: "multi-match",
+                data: searchResults,
+                context: {
+                    // نتحقق من وجود نتائج قبل محاولة قراءة العنصر [0]
+                    hasActivity: searchResults.activities && searchResults.activities.length > 0,
+                    hasIndustrial: searchResults.industrial && searchResults.industrial.length > 0,
+                    hasDecision: searchResults.decision104 && searchResults.decision104.length > 0
+                }
             };
 
-            if (response.activities.length === 0 && response.areas.length === 0) {
-                return { type: 'no_results', text: `لم أجد بيانات دقيقة لـ "${original}". جرب كلمات مختلفة؟` };
+            // بناء نص الرد الذكي
+            if (response.context.hasActivity) {
+                const topAct = searchResults.activities[0];
+                response.text = `بناءً على تحليلي، يبدو أنك تستفسر عن نشاط "${topAct.name || topAct.activity}". `;
+            } else {
+                response.text = "لقد حللت طلبك، ووجدت مجموعة من المعلومات المتعلقة بالمناطق الصناعية والقرارات المنظمة: ";
             }
 
-            this.updateMemory(original, response.text, topEntity);
-            this.stats.successfulMatches++;
             return response;
 
         } catch (error) {
             console.error("Vector Core Error:", error);
-            return { type: 'error', text: 'حدث خطأ في تحليل البيانات.' };
+            // رد احتياطي في حالة الفشل تماماً
+            return {
+                text: "عذراً، واجهت صعوبة في الربط الدلالي بين القواعد، سأحاول مساعدتك بشكل عام.",
+                type: "text"
+            };
         }
     }
 
@@ -121,4 +120,5 @@ class AssistantAI {
 }
 
 // تصدير المساعد للنافذة العالمية
+
 window.assistant = new AssistantAI();
