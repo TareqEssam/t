@@ -3135,39 +3135,57 @@ if (!document.getElementById('searchAnimationStyle')) {
     document.head.appendChild(style);
 }
 
-// دالة اختيار النشاط من نتائج البحث (محسّنة)
-function selectActivityType(value, text) {
-    // 1. إخفاء نتائج البحث وتحديث حقل النص
+/****************************************************************************
+ * ✅ النسخة المصلحة من دالة اختيار النشاط (V7.5)
+ * تم الربط مع محرك المتجهات وتحديث كافة الشاشات المرتبطة (4 و 7)
+ ****************************************************************************/
+
+window.selectActivityType = function(value, text) {
+    console.log("🎯 جاري اختيار النشاط وتحديث البيانات لـ:", text);
+
+    // 1. إخفاء نتائج البحث وتحديث حقل النص المعروض للمستخدم
     const resultsContainer = document.getElementById('activityTypeSearchResults');
-    resultsContainer.style.display = 'none';
+    if (resultsContainer) {
+        resultsContainer.style.display = 'none';
+    }
     
     const searchInput = document.getElementById('activityTypeSearch');
-    searchInput.value = text;
-    
-    // 2. تحديث القائمة المنسدلة المخفية
-    const selectElement = document.getElementById('activityTypeSelect');
-    selectElement.value = value;
-    
-    // 3. تحديث بيانات التراخيص (في الشاشة الرابعة)
-    updateLicenseRequirements();
-    
-    // 🔥 الحل: استدعاء تحديث مراحل الإنتاج لشاشة المعاينة (الشاشة السابعة) 🔥
-    if (typeof initProductionFlow === 'function') {
-        initProductionFlow(value);
-    }
-
-    // 4. إطلاق حدث التغيير يدوياً لضمان مزامنة أي دوال أخرى مرتبطة بـ addEventListener
-    const event = new Event('change', { bubbles: true });
-    selectElement.dispatchEvent(event);
-    
-    // 5. إظهار رسالة نجاح وتأثيرات
-    showSuccessMessage('تم اختيار النشاط وتحديث مراحل الإنتاج');
-    
     if (searchInput) {
+        searchInput.value = text;
+        // تأثير بصري خفيف للتأكيد على الاختيار
         searchInput.style.animation = 'pulse 0.5s ease';
         setTimeout(() => searchInput.style.animation = '', 500);
     }
-}
+    
+    // 2. تحديث القائمة المنسدلة (Select) لضمان مزامنة البيانات الأصلية
+    const selectElement = document.getElementById('activityTypeSelect');
+    if (selectElement) {
+        selectElement.value = value;
+        
+        // إطلاق حدث التغيير (Change) لإخطار أي مستمعين آخرين في النظام
+        const event = new Event('change', { bubbles: true });
+        selectElement.dispatchEvent(event);
+    }
+    
+    // 3. تحديث بيانات التراخيص (الشاشة الرابعة) - فحص الأمان
+    if (typeof updateLicenseRequirements === 'function') {
+        updateLicenseRequirements();
+    } else if (typeof updateActivityDetails === 'function') {
+        // إذا كنت تستخدم المسمى الجديد في main_logic
+        updateActivityDetails(value);
+    }
+    
+    // 4. تحديث مراحل الإنتاج لشاشة المعاينة (الشاشة السابعة)
+    if (typeof initProductionFlow === 'function') {
+        console.log("⚙️ جاري تحديث تدفق الإنتاج...");
+        initProductionFlow(value);
+    }
+
+    // 5. إظهار رسالة نجاح للمستخدم (إذا كانت دالة الرسائل متوفرة)
+    if (typeof showSuccessMessage === 'function') {
+        showSuccessMessage('تم اختيار النشاط وتحديث كافة البيانات المرتبطة بنجاح');
+    }
+};
 
 // دالة لإظهار رسالة نجاح (إضافة اختيارية)
 function showSuccessMessage(message) {
@@ -3228,23 +3246,20 @@ if (!document.getElementById('fadeOutAnimation')) {
 }
 
 // إخفاء نتائج البحث عند النقر خارجها (محسّن)
+// استبدل المقطع القديم بهذا الكود لضمان التوافق مع vEngine
 document.addEventListener('click', function(event) {
     const searchInput = document.getElementById('activityTypeSearch');
     const searchResults = document.getElementById('activityTypeSearchResults');
-    const searchContainer = searchInput ? searchInput.parentElement : null;
     
-    // التحقق من أن النقر ليس داخل منطقة البحث
-    if (searchContainer && !searchContainer.contains(event.target)) {
-        if (searchResults) {
-            searchResults.style.animation = 'fadeOut 0.2s ease';
-            setTimeout(() => {
-                searchResults.style.display = 'none';
-                searchResults.style.animation = '';
-            }, 200);
-        }
+    // إذا نقر المستخدم خارج مربع البحث وخارج حاوية النتائج
+    if (searchInput && searchResults && 
+        !searchInput.contains(event.target) && 
+        !searchResults.contains(event.target)) {
+        
+        // إخفاء القائمة بهدوء
+        searchResults.style.display = 'none';
     }
 });
-
 
 
 
@@ -6253,6 +6268,7 @@ if (document.readyState === 'loading') {
             if (biCharts.waste) biCharts.waste.destroy();
             biCharts.waste = new Chart(ctx6, { type: 'bar', data: { labels: ['عضوية', 'معادن', 'بلاستيك', 'ورق', 'كيماويات'], datasets: [{ label: 'الكمية (طن)', data: [4200, 3100, 2450, 1800, 900], backgroundColor: '#95a5a6' }] }, options: { responsive: true, maintainAspectRatio: false } });
         }
+
 
 
 
