@@ -70,14 +70,17 @@ class AssistantAI {
         try {
             const searchResults = await window.vEngine.search(text);
             
+            // تجهيز الكائن ليتوافق مع response_formatter.js
             const response = {
                 text: "",
-                type: "multi-match",
-                data: searchResults,
+                type: "multi_match", // تأكد من وجود الـ underscore وليس dash
+                activities: searchResults.activities || [],
+                areas: searchResults.industrial || [], // ربط industrial بـ areas
+                decision104: searchResults.decision104 || [],
                 context: {
-                    hasActivity: searchResults.activities && searchResults.activities.length > 0,
-                    hasIndustrial: searchResults.industrial && searchResults.industrial.length > 0,
-                    hasDecision: searchResults.decision104 && searchResults.decision104.length > 0
+                    hasActivity: searchResults.activities?.length > 0,
+                    hasIndustrial: searchResults.industrial?.length > 0,
+                    hasDecision: searchResults.decision104?.length > 0
                 }
             };
 
@@ -88,11 +91,12 @@ class AssistantAI {
                 response.text = `بناءً على تحليلي، يبدو أنك تستفسر عن نشاط "${entityName}". إليك التفاصيل المتاحة:`;
                 this.updateMemory(text, response.text, entityName);
             } else if (response.context.hasIndustrial) {
-                const topArea = searchResults.industrial[0];
-                response.text = `وجدت معلومات عن المنطقة الصناعية "${topArea.name || 'المختارة'}":`;
-                this.updateMemory(text, response.text, topArea.name);
+                const topArea = searchResults.areas[0];
+                const areaName = topArea.name || topArea.area_name;
+                response.text = `وجدت معلومات متعلقة بالمناطق الصناعية، مثل "${areaName}":`;
+                this.updateMemory(text, response.text, areaName);
             } else {
-                response.text = "لقد حللت طلبك، ووجدت مجموعة من المعلومات المتعلقة بالمناطق الصناعية والقرارات المنظمة: ";
+                response.text = "لقد حللت طلبك، ولم أجد نشاطاً مطابقاً تماماً، ولكن إليك أقرب المعلومات المتوفرة:";
             }
 
             return response;
@@ -100,7 +104,7 @@ class AssistantAI {
         } catch (error) {
             console.error("Vector Core Error:", error);
             return {
-                text: "عذراً، واجهت صعوبة في الربط الدلالي بين القواعد، سأحاول مساعدتك بشكل عام.",
+                text: "عذراً، واجهت صعوبة في الربط الدلالي.",
                 type: "error"
             };
         }
@@ -119,3 +123,4 @@ class AssistantAI {
 
 // تصدير المساعد للنافذة العالمية
 window.assistant = new AssistantAI();
+
