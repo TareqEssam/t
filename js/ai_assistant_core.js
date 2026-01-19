@@ -67,55 +67,43 @@ class AssistantAI {
     }
 
     async handleComplexQuery(text) {
-        try {
-            // تنفيذ البحث الدلالي عبر المحرك
-            const searchResults = await window.vEngine.search(text);
-            
-            // التأكد من أن searchResults كائن صالح وليس undefined
-            const results = searchResults || { activities: [], industrial: [], decision104: [] };
+    try {
+        const searchResults = await window.vEngine.search(text);
+        const results = searchResults || { activities: [], industrial: [], decision104: [] };
 
-            // صياغة الرد بتنسيق متوافق مع المنسق البصري
-            const response = {
-                text: "",
-                type: "multi_match", 
-                activities: results.activities || [],
-                areas: results.industrial || [], 
-                decision104: results.decision104 || [],
-                context: {
-                    hasActivity: Array.isArray(results.activities) && results.activities.length > 0,
-                    hasIndustrial: Array.isArray(results.industrial) && results.industrial.length > 0,
-                    hasDecision: Array.isArray(results.decision104) && results.decision104.length > 0
-                }
-            };
+        // --- ميزان الأولوية الاحترافي ---
+        // نبحث عن أفضل نتيجة في الأنشطة أولاً
+        const topActivity = results.activities && results.activities.length > 0 ? results.activities[0] : null;
+        const topArea = results.industrial && results.industrial.length > 0 ? results.industrial[0] : null;
 
-            // بناء النص بأمان تام - فحص وجود العنصر قبل قراءته
-            if (response.context.hasActivity) {
-                const topAct = response.activities[0];
-                const entityName = topAct.name || topAct.activity || "النشاط المختار";
-                response.text = `بناءً على تحليلي، يبدو أنك تستفسر عن نشاط "${entityName}". إليك التفاصيل:`;
-                this.updateMemory(text, response.text, entityName);
-            } 
-            else if (response.context.hasIndustrial) {
-                const topArea = response.areas[0];
-                const areaName = topArea.name || topArea.area_name || "المنطقة المختارة";
-                response.text = `وجدت معلومات متعلقة بالمناطق الصناعية، مثل "${areaName}":`;
-                this.updateMemory(text, response.text, areaName);
-            } 
-            else {
-                response.text = "لقد حللت طلبك دلالياً، لم أجد تطابقاً مباشراً في الأنشطة، ولكن يمكنك الاطلاع على هذه النتائج العامة:";
-                response.type = "multi_match"; // نضمن بقاء النوع ليظهر المنسق البصري
-            }
+        const response = {
+            text: "",
+            type: "multi_match",
+            activities: results.activities || [],
+            areas: results.industrial || [],
+            decision104: results.decision104 || []
+        };
 
-            return response;
-
-        } catch (error) {
-            console.error("Vector Core Error:", error);
-            return {
-                text: "عذراً، واجهت صعوبة في الربط الدلالي بين القواعد حالياً.",
-                type: "error"
-            };
+        // منطق الرد المرتكز على الأنشطة (تجنب الردود العشوائية للمناطق)
+        if (topActivity && (topActivity.score > 0.4 || !topArea)) {
+            const entityName = topActivity.name || topActivity.activity || "النشاط المختار";
+            response.text = `بناءً على تحليلي الدلالي، إليك تفاصيل نشاط "${entityName}" والاشتراطات المتعلقة به:`;
+            this.updateMemory(text, response.text, entityName);
+        } else if (topArea) {
+            const areaName = topArea.name || topArea.area_name || "المنطقة الصناعية";
+            response.text = `لقد وجدت معلومات متعلقة بالمناطق الصناعية، وتحديداً "${areaName}":`;
+            this.updateMemory(text, response.text, areaName);
+        } else {
+            response.text = "لقد قمت بتحليل طلبك، إليك أقرب النتائج المتوفرة في قواعد البيانات:";
         }
+
+        return response;
+
+    } catch (error) {
+        console.error("Vector Core Error:", error);
+        return { text: "عذراً، حدث خطأ في معالجة البيانات دلالياً.", type: "error" };
     }
+}
 
     handleCommand(command) {
         if (command === 'help') {
@@ -130,5 +118,6 @@ class AssistantAI {
 
 // تصدير المساعد للنافذة العالمية
 window.assistant = new AssistantAI();
+
 
 
