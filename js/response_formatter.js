@@ -28,89 +28,87 @@ class ResponseFormatter {
     }
     
 
-    // ==================== تنسيق الرد المتعدد (نسخة مستقرة ومعربة) ====================
+    // ==================== تنسيق الرد المتعدد (النسخة الشاملة والمصلحة) ====================
 formatMultiMatch(response) {
-    let finalHTML = `<div class="multi-response-container">
-        <p class="mb-3">${response.text || 'إليك الأنشطة الأكثر مطابقة لاستفسارك:'}</p>`;
+    // تعريف حاوية الرد
+    let finalHTML = '<div class="multi-response-container">';
+    finalHTML += '<p class="mb-3">' + (response.text || 'إليك أفضل النتائج التي تم العثور عليها:') + '</p>';
 
-    // 1. قسم الأنشطة
+    // 1. قسم الأنشطة (الربط ببيانات التراخيص)
     if (response.activities && response.activities.length > 0) {
-        finalHTML += `<div class="result-section mb-3">
-            <h6 class="text-primary"><i class="bi bi-info-circle-fill"></i> اختر النشاط لعرض تفاصيل الترخيص:</h6>
-            <div class="d-flex flex-wrap gap-2">`;
+        finalHTML += '<div class="result-section mb-3">' +
+            '<h6 class="text-primary"><i class="bi bi-info-circle-fill"></i> الأنشطة (اضغط للتفاصيل):</h6>' +
+            '<div class="d-flex flex-wrap gap-2">';
             
         response.activities.slice(0, 5).forEach(act => {
             const activityId = act.id || act.value;
-            
-            // --- أ: تعريب المسمى (بدون استخدام رموز ?. المسببة للخطأ) ---
             let activityName = act.text || act.name;
             const mainSelect = document.getElementById('activityTypeSelect');
             
+            // التعريب الآمن
             if (!activityName && activityId && mainSelect) {
-                // استخدام الطريقة التقليدية الآمنة للبحث
                 const option = mainSelect.querySelector('option[value="' + activityId + '"]');
-                if (option) {
-                    activityName = option.text;
-                } else {
-                    activityName = activityId.replace(/_/g, ' ');
-                }
+                activityName = option ? option.text : activityId.replace(/_/g, ' ');
             }
             activityName = activityName || 'نشاط غير مسمى';
 
-            // --- ب: بناء حدث الضغط بشكل نصي آمن ---
-            // تم دمج الدوال في سطر واحد لتجنب مشاكل المسافات في Template Literals
-            const clickAction = "if(window.selectActivityType){window.selectActivityType('" + activityId + "','" + activityName + "');} if(window.assistant && window.assistant.showLicenseDetails){window.assistant.showLicenseDetails('" + activityId + "');} else {window.assistantUI.sendMessage('عرض بيانات ترخيص " + activityName + "');}";
+            // حدث الضغط: يفتح التراخيص ويحدث الواجهة
+            const clickAction = "if(window.selectActivityType){window.selectActivityType('" + activityId + "','" + activityName + "');} " +
+                               "if(window.assistant && window.assistant.showLicenseDetails){window.assistant.showLicenseDetails('" + activityId + "');} " +
+                               "else {window.assistantUI.sendMessage('عرض بيانات ترخيص " + activityName + "');}";
 
-            finalHTML += `
-            <span class="badge bg-white text-primary border border-primary p-2" 
-                  style="cursor:pointer; transition: all 0.2s; font-size: 0.9rem;" 
-                  onmouseover="this.style.backgroundColor='#f0f7ff'; this.style.transform='scale(1.02)';" 
-                  onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';"
-                  onclick="${clickAction}">
-                <i class="bi bi-search small"></i> ${activityName} 
-                <small class="text-muted ms-1">${Math.round((act.score || 0) * 100)}%</small>
-            </span>`;
+            finalHTML += '<span class="badge bg-white text-primary border border-primary p-2" ' +
+                'style="cursor:pointer; transition: all 0.2s; font-size: 0.85rem;" ' +
+                'onclick="' + clickAction + '">' +
+                '<i class="bi bi-search small"></i> ' + activityName + 
+                ' <small class="text-muted ms-1">' + Math.round((act.score || 0) * 100) + '%</small></span>';
         });
-        finalHTML += `</div></div>`;
+        finalHTML += '</div></div>';
     }
 
-    finalHTML += `</div>`;
-    return finalHTML;
-}
-
-    // 2. قسم المناطق الصناعية (إضافة فحص للحقول name و text)
+    // 2. قسم المناطق الصناعية (الربط بخرائط وبيانات المناطق)
     if (response.areas && response.areas.length > 0) {
-        finalHTML += `<div class="result-section mb-3">
-            <h6 class="text-success"><i class="bi bi-geo-alt"></i> المناطق المتاحة:</h6>
-            <ul class="list-unstyled">`;
-        response.areas.slice(0, 2).forEach(area => {
-            // صمام أمان لجلب اسم المنطقة
-            const areaName = area.id || area.name || area.text || 'منطقة غير مسمى';
+        finalHTML += '<div class="result-section mb-3">' +
+            '<h6 class="text-success"><i class="bi bi-geo-alt"></i> المناطق المتاحة:</h6>' +
+            '<ul class="list-unstyled">';
+        
+        response.areas.slice(0, 3).forEach(area => {
+            const areaName = area.name || area.text || area.id || 'منطقة غير مسمى';
             const dep = area.dependency || area.governorate || '';
-            finalHTML += `<li class="mb-2 p-2 bg-white rounded shadow-sm border-start border-success border-4" 
-                          style="cursor:pointer" onclick="window.assistantUI.sendMessage('${areaName}')">
-                <strong>${areaName}</strong> ${dep ? ' - ' + dep : ''}
-            </li>`;
+            
+            // حدث الضغط: يطلب تفاصيل المنطقة من المساعد
+            const areaAction = "window.assistantUI.sendMessage('أريد معلومات عن " + areaName + "');";
+
+            finalHTML += '<li class="mb-2 p-2 bg-white rounded shadow-sm border-start border-success border-4" ' +
+                'style="cursor:pointer" onclick="' + areaAction + '">' +
+                '<strong>' + areaName + '</strong>' + (dep ? ' - <small>' + dep + '</small>' : '') +
+                '</li>';
         });
-        finalHTML += `</ul></div>`;
+        finalHTML += '</ul></div>';
     }
 
-    // 3. قسم القرار 104 (الحوافز)
+    // 3. قسم القرار 104 (الحوافز الاستثمارية)
     if (response.decision104 && response.decision104.length > 0) {
-        const decisionText = response.decision104[0].text || response.decision104[0].activity || '';
-        if (decisionText) {
-            finalHTML += `<div class="result-section mb-3">
-                <h6 class="text-warning"><i class="bi bi-star"></i> حوافز القرار 104:</h6>
-                <div class="p-2 bg-light rounded italic" style="font-size:0.85rem;">
-                    ${decisionText}
-                </div>
-            </div>`;
-        }
+        finalHTML += '<div class="result-section mb-3">' +
+            '<h6 class="text-warning"><i class="bi bi-star-fill"></i> حوافز القرار 104 لسنة 2022:</h6>';
+        
+        response.decision104.slice(0, 2).forEach(item => {
+            const dText = item.text || item.activity || '';
+            if (dText) {
+                finalHTML += '<div class="p-2 mb-2 bg-light rounded border-start border-warning border-3" style="font-size:0.85rem; font-style: italic;">' +
+                    '<i class="bi bi-check2-circle"></i> ' + dText + '</div>';
+            }
+        });
+        finalHTML += '</div>';
     }
 
-    finalHTML += `</div>`;
-    return this.createCard('info', 'نتائج البحث الدلالي', finalHTML, response.confidence || 0.8);
+    finalHTML += '</div>'; // إغلاق الحاوية الرئيسية
+    
+    // استخدام createCard لضمان التوافق مع بنية الكلاس الأصلية
+    return this.createCard('info', 'نتائج البحث الدلالي الذكي', finalHTML, response.confidence || 0.8);
 }
+
+	
     // ==================== تنسيق الرد الرئيسي المحدث (V7) ====================
     formatResponse(response) {
         if (!response || !response.type) {
@@ -868,6 +866,7 @@ formatMultiMatch(response) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
 
 
 
