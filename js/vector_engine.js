@@ -1,6 +1,6 @@
 /****************************************************************************
- * 🧠 Vector Engine - محرك البحث الدلالي السحابي
- * يستهدف الملفات المرفوعة على GitHub وموديل Hugging Face
+ * 🧠 Vector Engine - محرك البحث الدلالي السحابي (نسخة الإصلاح النهائي)
+ * يتوافق مع هيكلية بيانات v5-lean (data -> vectors -> primary)
  ****************************************************************************/
 
 import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
@@ -14,9 +14,9 @@ class VectorEngine {
         this.tokenizer = null;
         this.extractor = null;
         this.databases = {
-            activities: null,
-            industrial: null,
-            decision104: null
+            activities: { vectors: [] },
+            industrial: { vectors: [] },
+            decision104: { vectors: [] }
         };
         this.isReady = false;
         
@@ -31,38 +31,51 @@ class VectorEngine {
     }
 
     async init() {
-        console.log("🚀 جاري تهيئة محرك المتجهات السحابي...");
+        console.log("🚀 جاري تهيئة محرك المتجهات والتحقق من بنية البيانات...");
         try {
             // 1. تحميل موديل الذكاء الاصطناعي من Hugging Face
             this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-            console.log("✅ تم تحميل موديل التشفير من Hugging Face");
+            console.log("✅ تم تحميل موديل التشفير بنجاح");
 
-            // 2. تحميل قواعد البيانات JSON بشكل متوازي لتوفير الوقت
+            // 2. تحميل وقراءه قواعد البيانات ومعالجة هيكلية v5-lean
             const loadTasks = Object.entries(this.urls).map(async ([key, url]) => {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`Failed to load ${key}`);
-                this.databases[key] = await response.json();
-                console.log(`📦 تم تحميل قاعدة: ${key} (${(response.headers.get('content-length') / 1024).toFixed(1)} KB)`);
+                if (!response.ok) throw new Error(`فشل تحميل قاعدة: ${key}`);
+                
+                const json = await response.json();
+                let vectorArray = [];
+
+                // 🔥 الإصلاح الجوهري: استخراج البيانات من الهيكل الجديد
+                if (json.data && Array.isArray(json.data)) {
+                    vectorArray = json.data.map(item => ({
+                        id: item.id,
+                        // الوصول لمتجهات 'primary' داخل كائن 'vectors'
+                        vector: item.vectors ? item.vectors.primary : null 
+                    })).filter(item => item.vector !== null);
+                } else if (json.vectors) {
+                    // دعم الصيغة القديمة في حال وجودها
+                    vectorArray = json.vectors;
+                }
+
+                this.databases[key].vectors = vectorArray;
+                console.log(`📦 قاعدة [${key}]: تم استخراج ${vectorArray.length} متجهة بنجاح.`);
             });
 
             await Promise.all(loadTasks);
             this.isReady = true;
-            console.log("🎯 محرك المتجهات جاهز للعمل بنسبة 100%");
+            console.log("🎯 نظام البحث الدلالي جاهز تماماً للعمل.");
             
             // إرسال حدث للنظام بأن المحرك جاهز
             window.dispatchEvent(new CustomEvent('vectorEngineReady'));
 
         } catch (error) {
-            console.error("❌ فشل تهيئة المحرك:", error);
+            console.error("❌ فشل تهيئة المحرك أو قراءة البيانات:", error);
         }
     }
 
-    // حساب التشابه الجيبي (Cosine Similarity)
+    // حساب التشابه الجيبي (Cosine Similarity) بدقة عالية
     cosineSimilarity(vecA, vecB) {
-        // فحص أمان: التأكد من أن المتجهات موجودة ولها نفس الطول
-        if (!vecA || !vecB || vecA.length === 0 || vecA.length !== vecB.length) {
-            return 0; 
-        }
+        if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
         
         let dotProduct = 0;
         let normA = 0;
@@ -77,13 +90,17 @@ class VectorEngine {
         return denominator === 0 ? 0 : dotProduct / denominator;
     }
 
+    // تحويل النص المدخل إلى متجه رقمي
     async getVector(text) {
         const output = await this.extractor(text, { pooling: 'mean', normalize: true });
         return Array.from(output.data);
     }
 
-    async search(query, limit = 5) {
-        if (!this.isReady) return { error: "المحرك لا يزال قيد التحميل..." };
+    async search(query, limit = 10) {
+        if (!this.isReady) {
+            console.warn("⚠️ المحرك لم ينتهِ من تحميل البيانات بعد.");
+            return { activities: [], industrial: [], decision104: [] };
+        }
 
         const queryVector = await this.getVector(query);
         const results = {
@@ -94,27 +111,23 @@ class VectorEngine {
 
         // البحث في القواعد الثلاث
         for (const [key, db] of Object.entries(this.databases)) {
-            if (!db || !db.data) continue;
+            if (!db.vectors || db.vectors.length === 0) continue;
 
-            const scores = db.data
-                .filter(item => item && item.vector) // إضافة هذا السطر لتصفية البيانات الناقصة
-                .map(item => ({
-                    ...item,
-                    score: this.cosineSimilarity(queryVector, item.vector)
-                }));
+            const scores = db.vectors.map(item => ({
+                id: item.id,
+                score: this.cosineSimilarity(queryVector, item.vector)
+            }));
 
-            // ترتيب حسب الأعلى تشابهاً وتصفية النتائج الضعيفة
+            // ترتيب حسب الأعلى تشابهاً وتصفية النتائج الضعيفة جداً
             results[key] = scores
                 .sort((a, b) => b.score - a.score)
                 .slice(0, limit)
-                .filter(r => r.score > 0.25); // عتبة القبول
+                .filter(r => r.score > 0.15); // عتبة قبول مرنة للبحث الوصفي
         }
 
         return results;
     }
 }
 
-// تصدير نسخة واحدة ثابتة للنظام
-
+// تصدير النسخة للمجال العام لضمان عمل app.js و neural_search
 window.vEngine = new VectorEngine();
-
