@@ -28,13 +28,13 @@ class ResponseFormatter {
     }
     
 
-    // ==================== تنسيق الرد المتعدد (النسخة الشاملة والمصلحة) ====================
+   // ==================== تنسيق الرد المتعدد (النسخة المصححة) ====================
 formatMultiMatch(response) {
     // تعريف حاوية الرد
     let finalHTML = '<div class="multi-response-container">';
     finalHTML += '<p class="mb-3">' + (response.text || 'إليك أفضل النتائج التي تم العثور عليها:') + '</p>';
 
-    // 1. قسم الأنشطة (الربط ببيانات التراخيص)
+    // 1. قسم الأنشطة
     if (response.activities && response.activities.length > 0) {
         finalHTML += '<div class="result-section mb-3">' +
             '<h6 class="text-primary"><i class="bi bi-info-circle-fill"></i> الأنشطة (اضغط للتفاصيل):</h6>' +
@@ -45,17 +45,16 @@ formatMultiMatch(response) {
             let activityName = act.text || act.name;
             const mainSelect = document.getElementById('activityTypeSelect');
             
-            // التعريب الآمن
             if (!activityName && activityId && mainSelect) {
                 const option = mainSelect.querySelector('option[value="' + activityId + '"]');
                 activityName = option ? option.text : activityId.replace(/_/g, ' ');
             }
-            activityName = activityName || 'نشاط غير مسمى';
+            activityName = (activityName || 'نشاط غير مسمى').replace(/'/g, "\\'"); // هروب لعلامة التنصيص في الاسم
 
-            // حدث الضغط: يفتح التراخيص ويحدث الواجهة
-            const clickAction = "if(window.selectActivityType){window.selectActivityType('" + activityId + "','" + activityName + "');} " +
-                               "if(window.assistant && window.assistant.showLicenseDetails){window.assistant.showLicenseDetails('" + activityId + "');} " +
-                               "else {window.assistantUI.sendMessage('عرض بيانات ترخيص " + activityName + "');}";
+            // تحسين بناء حدث الضغط لتجنب أخطاء Syntax
+            const clickAction = `if(window.selectActivityType){window.selectActivityType('${activityId}','${activityName}');} ` +
+                                `if(window.assistant && window.assistant.showLicenseDetails){window.assistant.showLicenseDetails('${activityId}');} ` +
+                                `else {window.assistantUI.sendMessage('عرض بيانات ترخيص ${activityName}');}`;
 
             finalHTML += '<span class="badge bg-white text-primary border border-primary p-2" ' +
                 'style="cursor:pointer; transition: all 0.2s; font-size: 0.85rem;" ' +
@@ -66,18 +65,17 @@ formatMultiMatch(response) {
         finalHTML += '</div></div>';
     }
 
-    // 2. قسم المناطق الصناعية (الربط بخرائط وبيانات المناطق)
+    // 2. قسم المناطق الصناعية
     if (response.areas && response.areas.length > 0) {
         finalHTML += '<div class="result-section mb-3">' +
             '<h6 class="text-success"><i class="bi bi-geo-alt"></i> المناطق المتاحة:</h6>' +
             '<ul class="list-unstyled">';
         
         response.areas.slice(0, 3).forEach(area => {
-            const areaName = area.name || area.text || area.id || 'منطقة غير مسمى';
+            const areaName = (area.name || area.text || area.id || 'منطقة غير مسمى').replace(/'/g, "\\'");
             const dep = area.dependency || area.governorate || '';
             
-            // حدث الضغط: يطلب تفاصيل المنطقة من المساعد
-            const areaAction = "window.assistantUI.sendMessage('أريد معلومات عن " + areaName + "');";
+            const areaAction = `window.assistantUI.sendMessage('أريد معلومات عن ${areaName}');`;
 
             finalHTML += '<li class="mb-2 p-2 bg-white rounded shadow-sm border-start border-success border-4" ' +
                 'style="cursor:pointer" onclick="' + areaAction + '">' +
@@ -87,7 +85,7 @@ formatMultiMatch(response) {
         finalHTML += '</ul></div>';
     }
 
-    // 3. قسم القرار 104 (الحوافز الاستثمارية)
+    // 3. قسم القرار 104
     if (response.decision104 && response.decision104.length > 0) {
         finalHTML += '<div class="result-section mb-3">' +
             '<h6 class="text-warning"><i class="bi bi-star-fill"></i> حوافز القرار 104 لسنة 2022:</h6>';
@@ -102,12 +100,10 @@ formatMultiMatch(response) {
         finalHTML += '</div>';
     }
 
-    finalHTML += '</div>'; // إغلاق الحاوية الرئيسية
+    finalHTML += '</div>';
     
-    // استخدام createCard لضمان التوافق مع بنية الكلاس الأصلية
     return this.createCard('info', 'نتائج البحث الدلالي الذكي', finalHTML, response.confidence || 0.8);
 }
-
 	
     // ==================== تنسيق الرد الرئيسي المحدث (V7) ====================
     formatResponse(response) {
@@ -866,6 +862,7 @@ formatMultiMatch(response) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
 
 
 
