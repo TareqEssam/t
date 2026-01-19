@@ -78,17 +78,16 @@ function populateActivitySelect(data) {
     const select = document.getElementById('activityTypeSelect');
     if (!select || !data) return;
 
-    // تنظيف القائمة
-    select.innerHTML = '<option value=\"\">-- اختر النشاط أو ابحث عنه أعلاه --</option>';
+    select.innerHTML = '<option value="">-- اختر النشاط أو ابحث عنه أعلاه --</option>';
 
     data.forEach(item => {
         const option = document.createElement('option');
-        option.value = item.value;
-        option.textContent = item.text;
+        // تعديل هنا: التأكد من أخذ القيمة والاسم بشكل صحيح
+        option.value = item.value || item.id; 
+        option.textContent = item.text || item.id || "نشاط";
         select.appendChild(option);
     });
 
-    // إضافة مستمع التغيير لتحديث التفاصيل
     select.onchange = (e) => updateActivityDetails(e.target.value);
 }
 
@@ -98,30 +97,33 @@ function populateActivitySelect(data) {
 function updateActivityDetails(selectedValue) {
     if (!selectedValue) return;
 
-    // البحث عن النشاط في قاعدة البيانات الأصلية
-    const activity = masterActivityDB.find(a => a.value === selectedValue);
+    // تعديل هنا: البحث بمرونة أكبر (عن طريق الـ value أو الـ id)
+    const activity = masterActivityDB.find(a => (a.value === selectedValue || a.id === selectedValue));
     
     if (activity) {
-        console.log("🔄 تحديث واجهة التفاصيل للنشاط:", activity.text);
+        console.log("🔄 تحديث واجهة التفاصيل للنشاط:", activity.text || activity.id);
 
-        // تحديث النصوص في واجهة التقرير
-        if(document.getElementById('currentLicense')) document.getElementById('currentLicense').innerText = activity.text;
-        if(document.getElementById('reqLicense')) document.getElementById('reqLicense').innerText = activity.details?.req || 'غير متوفر';
-        if(document.getElementById('authLicense')) document.getElementById('authLicense').innerText = activity.details?.auth || 'غير متوفر';
-        if(document.getElementById('reqLocation')) document.getElementById('reqLocation').innerText = activity.details?.loc || 'غير متوفر';
-        if(document.getElementById('legalBasis')) document.getElementById('legalBasis').innerText = activity.details?.leg || 'غير متوفر';
-        if(document.getElementById('guideNameDisplay')) document.getElementById('guideNameDisplay').innerText = activity.details?.guid || 'غير متوفر';
+        // استخدام || 'غير متوفر' لضمان عدم ظهور مساحات فارغة
+        const label = activity.text || activity.id;
+        if(document.getElementById('currentLicense')) document.getElementById('currentLicense').innerText = label;
+        
+        // جلب التفاصيل من كائن details
+        const details = activity.details || {};
+        if(document.getElementById('reqLicense')) document.getElementById('reqLicense').innerText = details.req || 'غير متوفر';
+        if(document.getElementById('authLicense')) document.getElementById('authLicense').innerText = details.auth || 'غير متوفر';
+        if(document.getElementById('reqLocation')) document.getElementById('reqLocation').innerText = details.loc || 'غير متوفر';
+        if(document.getElementById('legalBasis')) document.getElementById('legalBasis').innerText = details.leg || 'غير متوفر';
+        if(document.getElementById('guideNameDisplay')) document.getElementById('guideNameDisplay').innerText = details.guid || 'غير متوفر';
 
-        // إظهار منطقة النتائج
         if(document.getElementById('licenseResultArea')) document.getElementById('licenseResultArea').style.display = 'block';
 
-        // تحديث الملاحظات الفنية
         const techNotesArea = document.getElementById('technicalNotesTextarea');
         if (techNotesArea) techNotesArea.value = activity.technicalNotes || '';
 
-        // تشغيل الوظائف التفاعلية الأخرى إن وجدت
+        // تنفيذ الوظائف الملحقة
         if (typeof loadDynamicLicenseFields === 'function') loadDynamicLicenseFields(selectedValue);
-        if (typeof updateSpecializedFacilityVisibility === 'function') updateSpecializedFacilityVisibility(selectedValue);
         if (typeof initProductionFlow === 'function') initProductionFlow(selectedValue);
+    } else {
+        console.warn("⚠️ لم يتم العثور على بيانات تفصيلية للقيمة:", selectedValue);
     }
 }
