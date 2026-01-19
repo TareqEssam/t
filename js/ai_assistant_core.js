@@ -1,7 +1,7 @@
 /****************************************************************************
- * 🧠 AI Assistant Core - النسخة المصلحة (V7.3)
- * - حل مشكلة التوجيه الخاطئ (فندق -> توشكى)
- * - تحسين استخراج الأسماء من حقل ID
+ * 🧠 AI Assistant Core - النسخة المصلحة النهائية (V7.5)
+ * - دمج البحث الدلالي مع الجلب المباشر للبيانات
+ * - إصلاح أخطاء الأقواس والتكرار
  ****************************************************************************/
 
 class AssistantAI {
@@ -64,7 +64,7 @@ class AssistantAI {
         try {
             const results = await window.vEngine.search(text);
             
-            // 1. تحديد نية المستخدم (Intent Detection)
+            // 1. تحديد نية المستخدم
             const isActivityQuery = /انشاء|تشغيل|مصنع|نشاط|فندق|ورشة|صناعة|تراخيص/.test(text);
 
             // 2. استخراج النتائج
@@ -80,29 +80,23 @@ class AssistantAI {
                 confidence: 0
             };
 
-            // دوال استخراج الأسماء مع دعم حقل id
             const getActivityName = (act) => act.id || act.text || act.name || "نشاط";
             const getAreaName = (area) => area.id || area.name || area.text || "منطقة صناعية";
 
-            // 3. منطق اتخاذ القرار (Decision Logic)
-
-            // الحالة أ: إذا كان السؤال عن نشاط (مثل فندق) ووجدنا نتيجة في الأنشطة
+            // 3. منطق اتخاذ القرار
             if (isActivityQuery && topActivity) {
                 const name = getActivityName(topActivity);
                 response.text = `بناءً على طلبك بخصوص "${name}"، إليك البيانات المتاحة:`;
                 response.confidence = topActivity.score;
-                // إخفاء المناطق من المقدمة إذا كان السؤال صريحاً عن نشاط
                 response.areas = (topActivity.score > 0.5) ? [] : response.areas;
                 this.updateMemory(text, response.text, name);
             } 
-            // الحالة ب: إذا وجدنا نشاط بسكور عالي جداً (حتى لو لم تكتشف النية)
             else if (topActivity && topActivity.score > 0.6) {
                 const name = getActivityName(topActivity);
                 response.text = `إليك تفاصيل نشاط "${name}":`;
                 response.confidence = topActivity.score;
                 this.updateMemory(text, response.text, name);
             }
-            // الحالة ج: العثور على منطقة صناعية
             else if (topArea) {
                 const name = getAreaName(topArea);
                 const cleanName = name.split('(')[0].replace('المنطقة الصناعية', '').trim();
@@ -110,7 +104,6 @@ class AssistantAI {
                 response.confidence = topArea.score || 0.8;
                 this.updateMemory(text, response.text, name);
             } 
-            // الحالة د: لا توجد نتائج واضحة
             else {
                 response.text = "عذراً، لم أجد نتائج مطابقة تماماً لطلبك. هل يمكنك تحديد النشاط أو المنطقة بشكل أوضح؟";
                 response.confidence = 0.2;
@@ -128,12 +121,47 @@ class AssistantAI {
         if (command === 'help') {
             return {
                 type: 'help',
-                text: 'أنا مساعدك الذكي. يمكنك سؤالي عن الأنشطة (مثلاً: مصنع ملابس)، المناطق الصناعية، أو حوافز القرار 104.',
+                text: 'أنا مساعدك الذكي. يمكنك سؤالي عن الأنشطة، المناطق الصناعية، أو حوافز القرار 104.',
                 confidence: 1
             };
         }
     }
-}
 
-// تصدير المساعد للنافذة العالمية
+    // =========================================================
+    // 🛡️ مهارة عرض تفاصيل الترخيص المباشرة (Direct Data Fetch)
+    // =========================================================
+    showLicenseDetails(activityId) {
+        console.log("🔍 استدعاء مباشر للمعرف:", activityId);
+        
+        if (typeof masterActivityDB !== 'undefined') {
+            const data = masterActivityDB.find(item => item.value === activityId);
+            
+            if (data && data.details) {
+                const details = data.details;
+                const responseText = `
+                    🏢 **نشاط: ${data.text}**
+                    -----------------------------------
+                    📌 **وصف النشاط:** ${details.act || 'غير متوفر'}
+                    🏛️ **الجهة المختصة:** ${details.auth || 'غير محددة'}
+                    📝 **المتطلبات الأساسية:** ${details.req || 'يرجى مراجعة الجهة'}
+                    ⚖️ **التشريعات المنظمة:** ${details.leg || 'خاضع للقوانين العامة'}
+                `;
+                
+                if (window.assistantUI) {
+                    window.assistantUI.displayResponse({
+                        text: responseText,
+                        type: 'license_info',
+                        confidence: 1.0
+                    });
+                }
+            } else {
+                console.warn("⚠️ لا توجد تفاصيل للمعرف:", activityId);
+            }
+        } else {
+            console.error("❌ قاعدة البيانات masterActivityDB غير محملة.");
+        }
+    }
+} // نهاية الكلاس بشكل صحيح
+
+// تصدير نسخة واحدة فقط للنافذة العالمية
 window.assistant = new AssistantAI();
