@@ -562,6 +562,28 @@ class AssistantUI {
     selectActivity(activityText) {
         this.sendMessage(activityText);
     }
+
+    // إظهار مؤشر الكتابة (النقاط المتحركة)
+    showTypingIndicator() {
+        if (this.elements.typingIndicator) {
+            this.elements.typingIndicator.style.display = 'flex';
+            this.scrollToBottom();
+        }
+    }
+
+    // إخفاء مؤشر الكتابة
+    hideTypingIndicator() {
+        if (this.elements.typingIndicator) {
+            this.elements.typingIndicator.style.display = 'none';
+        }
+    }
+
+    // دالة مساعدة للتمرير لأسفل المحادثة
+    scrollToBottom() {
+        if (this.elements.messagesContainer) {
+            this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+        }
+    }
 // ==================== الإضافة هنا ====================
     // دالة لاستقبال طلبات التحديث من الكروت المقترحة
     handleActivityClick(activityValue) {
@@ -589,5 +611,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.assistantUI = new AssistantUI();
     console.log('✅ تم تهيئة واجهة المساعد');
 });
+
 
 console.log('✅ assistant_ui.js تم التحميل بنجاح');
