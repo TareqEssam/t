@@ -13,7 +13,6 @@ function initializeNeuralSearch(inputId, resultsId, selectId, database) {
 
     if (!searchInput || !resultsContainer) return;
 
-    // استماع لحدث الكتابة
     searchInput.addEventListener('input', async (e) => {
         const query = e.target.value.trim();
         
@@ -22,35 +21,25 @@ function initializeNeuralSearch(inputId, resultsId, selectId, database) {
             return;
         }
 
-        // إظهار مؤشر بحث بسيط
-        resultsContainer.innerHTML = '<div class="p-3 text-center"><i class="bi bi-cpu-fill fa-spin"></i> جاري التحليل الدلالي...</div>';
+        resultsContainer.innerHTML = '<div class="p-3 text-center"><i class="bi bi-cpu-fill fa-spin"></i> جاري البحث...</div>';
         resultsContainer.style.display = 'block';
 
         try {
-            // الاستعلام من محرك المتجهات العالمي الذي أنشأناه
-            // نبحث هنا في فئة "activities" لأن هذا البحث مخصص للقائمة المنسدلة للأنشطة
             const allResults = await window.vEngine.search(query);
-            const activityResults = allResults.activities;
+            // التأكد من وجود نتائج في قسم الأنشطة
+            const activityResults = allResults.activities || [];
 
             if (activityResults.length > 0) {
                 renderVectorResults(activityResults, resultsContainer, mainSelect, searchInput);
             } else {
-                resultsContainer.innerHTML = '<div class="p-3 text-muted text-center">لم يتم العثور على نشاط مطابق دلالياً</div>';
+                resultsContainer.innerHTML = '<div class="p-3 text-muted text-center">لا توجد أنشطة مطابقة</div>';
             }
         } catch (error) {
             console.error("Search Error:", error);
-            resultsContainer.style.display = 'none';
-        }
-    });
-
-    // إغلاق النتائج عند النقر خارجها
-    document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
-            resultsContainer.style.display = 'none';
+            resultsContainer.innerHTML = '<div class="p-3 text-danger text-center">خطأ في الاتصال بقاعدة البيانات</div>';
         }
     });
 }
-
 /**
  * عرض النتائج القادمة من الفيكتور بتنسيق احترافي
  */
@@ -65,41 +54,36 @@ function renderVectorResults(results, container, selectElement, inputElement) {
         div.className = 'search-result-item p-2 border-bottom';
         div.style.cursor = 'pointer';
         
-        // حساب النسبة المئوية للمطابقة
+        // حساب نسبة المطابقة
         const matchPercentage = Math.round(result.score * 100);
         
-        // --- الجزء المصلح هنا ---
-        // نقوم بفحص كل الحقول الممكنة للحصول على الاسم الصحيح
-        const activityLabel = result.id || result.text || result.name || "نشاط غير مسمى";
-        const activityValue = result.value || result.id; 
+        // الإصلاح هنا: فحص كل الاحتمالات لاسم النشاط
+        const label = result.id || result.text || result.name || "نشاط";
+        const value = result.value || result.id; 
 
         div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-bold">${activityLabel}</span>
-                <span class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">مطابقة ${matchPercentage}%</span>
+            <div class="d-flex justify-content-between align-items-center p-1">
+                <span class="fw-bold" style="color: #2c3e50;">${label}</span>
+                <span class="badge bg-light text-primary border">${matchPercentage}%</span>
             </div>
         `;
 
         div.onclick = () => {
-            // تحديث القائمة المنسدلة والقيمة المعروضة
-            selectElement.value = activityValue;
-            inputElement.value = activityLabel;
+            selectElement.value = value;
+            inputElement.value = label;
             container.style.display = 'none';
             
-            // إطلاق حدث التغيير لتحديث الجداول والبيانات المرتبطة
+            // إجبار النظام على تحديث الجداول
             const event = new Event('change');
             selectElement.dispatchEvent(event);
             
-            // تحديث التفاصيل إذا كانت الدالة موجودة
             if (typeof updateActivityDetails === 'function') {
-                updateActivityDetails(activityValue);
+                updateActivityDetails(value);
             }
         };
-        // --- نهاية الجزء المصلح ---
-
         container.appendChild(div);
     });
 }
 
-
 console.log("✅ تم تحديث NeuralSearch ليعمل بنظام Vector Bridge");
+
