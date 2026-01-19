@@ -3245,39 +3245,6 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// تحسين حقل البحث: البحث عند كل ضغطة مفتاح
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('activityTypeSearch');
-    
-        
-        // البحث عند التركيز على الحقل (إذا كان هناك نص)
-        searchInput.addEventListener('focus', function() {
-            if (this.value.trim().length > 0) {
-                searchActivityType();
-            }
-        });
-        
-        // مسح حقل البحث عند الضغط على Escape
-        searchInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                this.value = '';
-                document.getElementById('activityTypeSearchResults').style.display = 'none';
-                document.getElementById('activityTypeSelect').value = '';
-            }
-            
-            // التنقل بين النتائج باستخدام الأسهم
-            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                e.preventDefault();
-                navigateSearchResults(e.key === 'ArrowDown' ? 'down' : 'up');
-            }
-            
-            // اختيار النتيجة المحددة بالضغط على Enter
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                selectHighlightedResult();
-            }
-        }); 
-    });
 
 
 
@@ -6286,6 +6253,7 @@ if (document.readyState === 'loading') {
             if (biCharts.waste) biCharts.waste.destroy();
             biCharts.waste = new Chart(ctx6, { type: 'bar', data: { labels: ['عضوية', 'معادن', 'بلاستيك', 'ورق', 'كيماويات'], datasets: [{ label: 'الكمية (طن)', data: [4200, 3100, 2450, 1800, 900], backgroundColor: '#95a5a6' }] }, options: { responsive: true, maintainAspectRatio: false } });
         }
+
 
 
 
