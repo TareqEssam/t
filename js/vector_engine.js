@@ -59,6 +59,11 @@ class VectorEngine {
 
     // حساب التشابه الجيبي (Cosine Similarity)
     cosineSimilarity(vecA, vecB) {
+        // فحص أمان: التأكد من أن المتجهات موجودة ولها نفس الطول
+        if (!vecA || !vecB || vecA.length === 0 || vecA.length !== vecB.length) {
+            return 0; 
+        }
+        
         let dotProduct = 0;
         let normA = 0;
         let normB = 0;
@@ -67,7 +72,9 @@ class VectorEngine {
             normA += vecA[i] * vecA[i];
             normB += vecB[i] * vecB[i];
         }
-        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        
+        const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+        return denominator === 0 ? 0 : dotProduct / denominator;
     }
 
     async getVector(text) {
@@ -87,10 +94,14 @@ class VectorEngine {
 
         // البحث في القواعد الثلاث
         for (const [key, db] of Object.entries(this.databases)) {
-            const scores = db.data.map(item => ({
-                ...item,
-                score: this.cosineSimilarity(queryVector, item.vector)
-            }));
+            if (!db || !db.data) continue;
+
+            const scores = db.data
+                .filter(item => item && item.vector) // إضافة هذا السطر لتصفية البيانات الناقصة
+                .map(item => ({
+                    ...item,
+                    score: this.cosineSimilarity(queryVector, item.vector)
+                }));
 
             // ترتيب حسب الأعلى تشابهاً وتصفية النتائج الضعيفة
             results[key] = scores
@@ -104,4 +115,5 @@ class VectorEngine {
 }
 
 // تصدير نسخة واحدة ثابتة للنظام
+
 window.vEngine = new VectorEngine();
