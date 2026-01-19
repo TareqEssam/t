@@ -40,7 +40,19 @@ formatMultiMatch(response) {
             <div class="d-flex flex-wrap gap-2">`;
         response.activities.slice(0, 3).forEach(act => {
             // صمام أمان لجلب الاسم (تم إضافة act.id لضمان عرض مسمى النشاط)
-            const activityName = act.text || act.name || act.id || act.value || 'نشاط غير مسمى';
+            // --- تعديل لتعريب مسميات المساعد دلالياً ---
+let activityName = act.text || act.name || 'نشاط غير مسمى';
+
+// إذا كان الاسم الحالي غير موجود أو إنجليزي (يساوي الـ id)، ابحث عن العربي
+if (!act.text && !act.name && act.id) {
+    const mainSelect = document.getElementById('activityTypeSelect');
+    if (mainSelect) {
+        const option = mainSelect.querySelector(`option[value="${act.id}"]`);
+        activityName = option ? option.text : act.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    } else {
+        activityName = act.id;
+    }
+}
             finalHTML += `<span class="badge bg-light text-dark border p-2" style="cursor:pointer" onclick="window.assistantUI.sendMessage('${activityName}')">
                 ${activityName} <small class="text-muted">(${Math.round((act.score || 0) * 100)}%)</small>
             </span>`;
@@ -838,4 +850,5 @@ formatMultiMatch(response) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
 
