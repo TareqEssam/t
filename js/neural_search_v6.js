@@ -122,8 +122,20 @@ function renderVectorResults(results, container, selectElement, inputElement) {
         div.className = 'search-result-item';
         
         // تحديد مسمى النشاط والقيمة الخاصة به (id هو الأهم في الفيكتور)
-        const label = result.id || result.text || result.name || "نشاط غير مسمى";
-        const value = result.value || result.id; 
+        // --- الإصلاح الذكي للغة (تحويل المعرف الإنجليزي إلى اسم عربي) ---
+const value = result.id; 
+let label = value; // الافتراضي هو المعرف
+
+// البحث عن الاسم العربي المقابل في القائمة المنسدلة الأصلية
+if (selectElement) {
+    const originalOption = selectElement.querySelector(`option[value="${value}"]`);
+    if (originalOption) {
+        label = originalOption.text; // وجدنا الاسم بالعربي
+    } else {
+        // إذا لم يجد اسماً عربياً، ينظف النص الإنجليزي (إزالة الشرطات وتكبير الحروف)
+        label = value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+}
         const matchPercentage = Math.round(result.score * 100);
 
         // تنسيق صف النتيجة
@@ -211,3 +223,4 @@ customSearchStyle.innerHTML = `
 document.head.appendChild(customSearchStyle);
 
 console.log("🚀 NeuralSearch v8.0: الجسر البرمجي جاهز للعمل بكامل طاقته");
+
