@@ -196,35 +196,12 @@ class AssistantUI {
         this.voice.on('speakingEnd', () => this.onSpeakingEnd());
         this.voice.on('interimResult', (data) => this.onInterimResult(data));
 
-        // الربط مع الذكاء الاصطناعي
+        // === التعديل: استخدام الدالة المركزية processQuery ===
         this.voice.on('result', async (data) => {
             if (data.isFinal) {
                 console.log('🎤 تم استقبال نص نهائي من الصوت:', data.text);
-                
-                // إظهار نص المستخدم في الواجهة
                 this.addMessage(data.text, 'user');
-                
-                // إظهار مؤشر التفكير
-                this.showThinking(true);
-
-                try {
-                    // إرسال النص لمحرك المتجهات
-                    const response = await this.ai.getResponse(data.text);
-                    
-                    this.showThinking(false);
-                    
-                    // تنسيق وعرض الرد
-                    const formattedResponse = this.formatter.formatResponse(response);
-                    this.addMessage(formattedResponse, 'assistant');
-
-                    // نطق الرد آلياً إذا لم يكن الصوت مكتوماً
-                    if (!this.voice.isMuted) {
-                        this.voice.speak(response.text);
-                    }
-                } catch (error) {
-                    console.error("خطأ في معالجة الصوت دلالياً:", error);
-                    this.showThinking(false);
-                }
+                await this.processQuery(data.text); // استدعاء الدالة المركزية
             }
         });
         
@@ -271,42 +248,20 @@ class AssistantUI {
         const text = this.elements.textInput.value.trim();
         if (!text) return;
 
-        // إضافة رسالة المستخدم للواجهة
+        // === التعديل: استخدام الدالة المركزية processQuery ===
         this.addMessage(text, 'user');
         this.elements.textInput.value = '';
-
-        // إظهار مؤشر "جاري التفكير"
-        this.showThinking(true);
-
-        try {
-            const response = await this.ai.getResponse(text);
-            
-            // إخفاء مؤشر التفكير وتنسيق الرد
-            this.showThinking(false);
-            const formattedResponse = this.formatter.formatResponse(response);
-            
-            // إضافة رد المساعد للواجهة
-            this.addMessage(formattedResponse, 'assistant');
-
-            // نطق الرد إذا كان الصوت مفعلاً
-            if (this.voice && !this.voice.isMuted) {
-                this.voice.speak(response.text);
-            }
-        } catch (error) {
-            console.error("خطأ في معالجة الرسالة:", error);
-            this.showThinking(false);
-            this.addMessage("عذراً، حدث خطأ أثناء تحليل طلبك.", 'assistant');
-        }
+        await this.processQuery(text);
     }
     
-    // ==================== معالجة السؤال ====================
+    // ==================== معالجة السؤال (الدالة المركزية) ====================
     async processQuery(query) {
         // إظهار مؤشر التفكير
         this.showThinking(true);
         
         try {
             // معالجة بالذكاء الاصطناعي
-            const response = await this.ai.processQuery(query);
+            const response = await this.ai.getResponse(query);
             
             // إخفاء المؤشر
             this.showThinking(false);
@@ -329,6 +284,9 @@ class AssistantUI {
             if (this.currentMode === 'voice' && response.text) {
                 const speechText = this.extractSpeechText(response);
                 this.voice.speak(speechText);
+            } else if (!this.voice.isMuted && response.text) {
+                // نطق الرد حتى في وضع النص إذا لم يكن الصوت مكتوماً
+                this.voice.speak(response.text);
             }
             
         } catch (error) {
