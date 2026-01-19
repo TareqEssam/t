@@ -272,7 +272,7 @@ class AssistantUI {
         if (!text) return;
 
         // إضافة رسالة المستخدم للواجهة
-        this.addMessage(text, 'user');
+        this.addMessage(text, 'user'); // سيبقى كما هو ولكن سيعمل الآن بشكل صحيح
         this.elements.textInput.value = '';
 
         // إظهار مؤشر "جاري التفكير"
@@ -361,21 +361,32 @@ class AssistantUI {
         }
     }
     
-    // ==================== إضافة رسالة ====================
-    addMessage(sender, content, isHTML = false) {
+    // ==================== إضافة رسالة (النسخة المحدثة للاستجابة للكائنات) ====================
+    addMessage(content, sender = 'assistant') {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message message-${sender}`;
         
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
         
-        if (isHTML) {
-            bubble.innerHTML = content;
+        // --- الجزء الجوهري للحل الاحترافي ---
+        if (typeof content === 'object' && content !== null) {
+            // إذا كان الرد قادماً من المنسق البصري (كائن يحتوي على HTML)
+            bubble.innerHTML = content.text || ""; 
+            
+            // إضافة أي عناصر إضافية (مثل الكروت) إذا كانت موجودة في محتوى الرد
+            if (content.html) {
+                const extraContent = document.createElement('div');
+                extraContent.innerHTML = content.html;
+                bubble.appendChild(extraContent);
+            }
         } else {
+            // إذا كان نصاً عادياً (مثل رسالة المستخدم)
             bubble.textContent = content;
         }
-        
-        // الوقت
+        // -------------------------------------
+
+        // إضافة الوقت
         const time = document.createElement('div');
         time.className = 'message-time';
         time.textContent = new Date().toLocaleTimeString('ar-EG', { 
@@ -388,10 +399,8 @@ class AssistantUI {
         
         this.elements.messagesContainer.appendChild(messageDiv);
         
-        // تمرير تلقائي
-        if (this.settings.autoScroll) {
-            this.scrollToBottom();
-        }
+        // تمرير تلقائي للأسفل
+        this.scrollToBottom();
     }
     
     // ==================== رسالة الترحيب ====================
@@ -614,3 +623,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 console.log('✅ assistant_ui.js تم التحميل بنجاح');
+
