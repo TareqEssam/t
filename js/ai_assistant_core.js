@@ -71,10 +71,8 @@ class AssistantAI {
         const searchResults = await window.vEngine.search(text);
         const results = searchResults || { activities: [], industrial: [], decision104: [] };
 
-        // --- ميزان الأولوية الاحترافي ---
-        // نبحث عن أفضل نتيجة في الأنشطة أولاً
-        const topActivity = results.activities && results.activities.length > 0 ? results.activities[0] : null;
-        const topArea = results.industrial && results.industrial.length > 0 ? results.industrial[0] : null;
+        const topActivity = (results.activities && results.activities.length > 0) ? results.activities[0] : null;
+        const topArea = (results.industrial && results.industrial.length > 0) ? results.industrial[0] : null;
 
         const response = {
             text: "",
@@ -84,24 +82,30 @@ class AssistantAI {
             decision104: results.decision104 || []
         };
 
-        // منطق الرد المرتكز على الأنشطة (تجنب الردود العشوائية للمناطق)
-        if (topActivity && (topActivity.score > 0.4 || !topArea)) {
-            const entityName = topActivity.name || topActivity.activity || "النشاط المختار";
-            response.text = `بناءً على تحليلي الدلالي، إليك تفاصيل نشاط "${entityName}" والاشتراطات المتعلقة به:`;
+        // 1. منطق "تفضيل النشاط" - لأن المستخدم غالباً يسأل عن عمله
+        // قمنا بخفض عتبة القبول لـ 0.2 لأن الأنشطة تكون نصوصها قصيرة والسكور فيها غالباً منخفض
+        if (topActivity && (topActivity.score > 0.2)) {
+            // حل مشكلة الاسم: البحث عن الحقل الصحيح (text أو name أو activity)
+            const entityName = topActivity.text || topActivity.name || topActivity.activity || "النشاط";
+            response.text = `بناءً على تحليلي، إليك تفاصيل "${entityName}":`;
             this.updateMemory(text, response.text, entityName);
-        } else if (topArea) {
-            const areaName = topArea.name || topArea.area_name || "المنطقة الصناعية";
-            response.text = `لقد وجدت معلومات متعلقة بالمناطق الصناعية، وتحديداً "${areaName}":`;
+        } 
+        // 2. إذا لم يجد نشاطاً قوياً، يبحث عن المنطقة
+        else if (topArea && topArea.score > 0.2) {
+            const areaName = topArea.name || topArea.area_name || topArea.text || "المنطقة الصناعية";
+            response.text = `لقد وجدت معلومات متعلقة بالمناطق الصناعية (${areaName}):`;
             this.updateMemory(text, response.text, areaName);
-        } else {
-            response.text = "لقد قمت بتحليل طلبك، إليك أقرب النتائج المتوفرة في قواعد البيانات:";
+        } 
+        // 3. حالة عدم التأكد (تمنع الإجابات العشوائية)
+        else {
+            response.text = "لم أجد تطابقاً مؤكداً بنسبة عالية، ولكن إليك أقرب النتائج لما طلبت:";
         }
 
         return response;
 
     } catch (error) {
         console.error("Vector Core Error:", error);
-        return { text: "عذراً، حدث خطأ في معالجة البيانات دلالياً.", type: "error" };
+        return { text: "عذراً، حدث خطأ في معالجة البيانات.", type: "error" };
     }
 }
 
@@ -118,6 +122,7 @@ class AssistantAI {
 
 // تصدير المساعد للنافذة العالمية
 window.assistant = new AssistantAI();
+
 
 
 
