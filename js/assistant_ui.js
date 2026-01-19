@@ -42,7 +42,6 @@ class AssistantUI {
             this.createUI();
             
             // 2. ربط المكونات
-            // نستخدم window.assistant (المحرك السحابي) إذا كان جاهزاً، وإلا ننشئ نسخة جديدة
             this.ai = window.assistant || new AssistantAI();
             this.formatter = new ResponseFormatter();
             
@@ -55,7 +54,7 @@ class AssistantUI {
             // 4. ربط أحداث الأزرار والإدخال
             this.bindEvents();
             
-            // 5. رسالة ترحيب (تأكد من استدعائها بعد جاهزية المكونات)
+            // 5. رسالة ترحيب
             this.showWelcomeMessage();
             
             console.log('✅ واجهة المساعد مرتبطة بمحرك المتجهات وجاهزة');
@@ -102,6 +101,7 @@ class AssistantUI {
         this.elements.muteBtn = chatWindow.querySelector('#mute-btn');
         this.elements.statusBar = chatWindow.querySelector('.status-bar');
         this.elements.thinkingIndicator = chatWindow.querySelector('.thinking-indicator');
+        this.elements.typingIndicator = chatWindow.querySelector('.thinking-indicator');
     }
     
     // ==================== HTML نافذة المحادثة ====================
@@ -196,7 +196,7 @@ class AssistantUI {
         this.voice.on('speakingEnd', () => this.onSpeakingEnd());
         this.voice.on('interimResult', (data) => this.onInterimResult(data));
 
-        // الإضافة الهامة جداً للربط مع الذكاء الاصطناعي
+        // الربط مع الذكاء الاصطناعي
         this.voice.on('result', async (data) => {
             if (data.isFinal) {
                 console.log('🎤 تم استقبال نص نهائي من الصوت:', data.text);
@@ -205,13 +205,13 @@ class AssistantUI {
                 this.addMessage(data.text, 'user');
                 
                 // إظهار مؤشر التفكير
-                this.showTypingIndicator();
+                this.showThinking(true);
 
                 try {
-                    // إرسال النص لمحرك المتجهات (لاحظ استخدام await)
+                    // إرسال النص لمحرك المتجهات
                     const response = await this.ai.getResponse(data.text);
                     
-                    this.hideTypingIndicator();
+                    this.showThinking(false);
                     
                     // تنسيق وعرض الرد
                     const formattedResponse = this.formatter.formatResponse(response);
@@ -223,7 +223,7 @@ class AssistantUI {
                     }
                 } catch (error) {
                     console.error("خطأ في معالجة الصوت دلالياً:", error);
-                    this.hideTypingIndicator();
+                    this.showThinking(false);
                 }
             }
         });
@@ -272,18 +272,17 @@ class AssistantUI {
         if (!text) return;
 
         // إضافة رسالة المستخدم للواجهة
-        this.addMessage(text, 'user'); // سيبقى كما هو ولكن سيعمل الآن بشكل صحيح
+        this.addMessage(text, 'user');
         this.elements.textInput.value = '';
 
         // إظهار مؤشر "جاري التفكير"
-        this.showTypingIndicator();
+        this.showThinking(true);
 
         try {
-            // التعديل الجوهري: إضافة await هنا
             const response = await this.ai.getResponse(text);
             
             // إخفاء مؤشر التفكير وتنسيق الرد
-            this.hideTypingIndicator();
+            this.showThinking(false);
             const formattedResponse = this.formatter.formatResponse(response);
             
             // إضافة رد المساعد للواجهة
@@ -295,7 +294,7 @@ class AssistantUI {
             }
         } catch (error) {
             console.error("خطأ في معالجة الرسالة:", error);
-            this.hideTypingIndicator();
+            this.showThinking(false);
             this.addMessage("عذراً، حدث خطأ أثناء تحليل طلبك.", 'assistant');
         }
     }
@@ -361,7 +360,7 @@ class AssistantUI {
         }
     }
     
-    /// ==================== إضافة رسالة (النسخة النهائية المستقرة) ====================
+    // ==================== إضافة رسالة ====================
     addMessage(content, sender = 'assistant') {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message message-${sender}`;
@@ -410,21 +409,6 @@ class AssistantUI {
             <div class="welcome-card">
                 <div class="welcome-icon">👋</div>
                 <div class="welcome-title">أهلاً بك!</div>
-                <div class="welcome-text">أنا المساعد الذكي لفريق اللجان. يمكنني مساعدتك في الأنشطة والتراخيص.</div>
-                <div class="welcome-actions">
-                    <button onclick="window.assistantUI.sendMessage('مساعدة')">💡 كيف أستخدمك؟</button>
-                </div>
-            </div>`;
-        
-        this.addMessage(welcomeHTML, 'assistant'); // الترتيب الصحيح
-    }
-    
-    // ==================== رسالة الترحيب ====================
-    showWelcomeMessage() {
-        const welcomeHTML = `
-            <div class="welcome-card">
-                <div class="welcome-icon">👋</div>
-                <div class="welcome-title">أهلاً بك!</div>
                 <div class="welcome-text">
                     أنا المساعد الذكي لفريق اللجان. يمكنني مساعدتك في:
                 </div>
@@ -458,7 +442,7 @@ class AssistantUI {
     // ==================== أحداث الصوت ====================
     handleVoiceResult(transcript, confidence) {
         // عرض ما قاله المستخدم
-        this.addMessage('user', transcript);
+        this.addMessage(transcript, 'user');
         
         // معالجة السؤال
         this.processQuery(transcript);
@@ -536,7 +520,6 @@ class AssistantUI {
         let isDragging = false;
         let initialX, initialY;
 
-        // تعريف الدوال أولاً لتجنب خطأ ReferenceError
         const drag = (e) => {
             if (!isDragging) return;
             
@@ -557,7 +540,6 @@ class AssistantUI {
             initialX = e.clientX - this.elements.window.offsetLeft;
             initialY = e.clientY - this.elements.window.offsetTop;
             
-            // إضافة المستمعات للمستند بالكامل لضمان سلاسة السحب
             document.addEventListener('mousemove', drag);
             document.addEventListener('mouseup', stopDrag);
         };
@@ -568,7 +550,6 @@ class AssistantUI {
             document.removeEventListener('mouseup', stopDrag);
         };
 
-        // ربط الحدث بالعنصر
         this.elements.header.addEventListener('mousedown', startDrag);
     }
     
@@ -603,13 +584,6 @@ class AssistantUI {
         }
     }
 
-    // دالة مساعدة للتمرير لأسفل المحادثة
-    scrollToBottom() {
-        if (this.elements.messagesContainer) {
-            this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
-        }
-    }
-// ==================== الإضافة هنا ====================
     // دالة لاستقبال طلبات التحديث من الكروت المقترحة
     handleActivityClick(activityValue) {
         console.log("🎯 تم اختيار نشاط من المقترحات:", activityValue);
@@ -624,9 +598,6 @@ class AssistantUI {
             console.warn("⚠️ دالة updateActivityDetails غير موجودة في main_logic.js");
         }
     }
-    // =====================================================
-
-
 }
 
 
@@ -639,5 +610,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 console.log('✅ assistant_ui.js تم التحميل بنجاح');
-
-
