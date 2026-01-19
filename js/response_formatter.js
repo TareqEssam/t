@@ -51,10 +51,9 @@ formatMultiMatch(response) {
             }
             activityName = (activityName || 'نشاط غير مسمى').replace(/'/g, "\\'"); // هروب لعلامة التنصيص في الاسم
 
-            // تحسين بناء حدث الضغط لتجنب أخطاء Syntax
-            const clickAction = "if(window.selectActivityType){window.selectActivityType('" + activityId + "','" + activityName + "');} " +
-                   "if(window.assistant && window.assistant.showLicenseDetails){window.assistant.showLicenseDetails('" + activityId + "');} " +
-                   "else { window.assistantUI.sendMessage('النشاط المختارة: " + activityId + "'); }";
+            // تعديل الزر ليكون للعرض فقط (Read-only Info)
+            const clickAction = `window.assistant.showLicenseDetails('${activityId}');`;
+
 
             finalHTML += '<span class="badge bg-white text-primary border border-primary p-2" ' +
                 'style="cursor:pointer; transition: all 0.2s; font-size: 0.85rem;" ' +
@@ -862,6 +861,7 @@ formatMultiMatch(response) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
 
 
 
