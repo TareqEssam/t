@@ -29,54 +29,67 @@ class ResponseFormatter {
     
 
     // ==================== تنسيق الرد المتعدد (النسخة المصلحة نهائياً) ====================
+// ==================== تنسيق الرد المتعدد (النسخة الذكية للاستفسار عن التراخيص) ====================
 formatMultiMatch(response) {
     let finalHTML = `<div class="multi-response-container">
-        <p class="mb-3">${response.text || 'إليك النتائج التي وجدتها:'}</p>`;
+        <p class="mb-3">${response.text || 'إليك الأنشطة الأكثر مطابقة لاستفسارك:'}</p>`;
 
-    // 1. قسم الأنشطة
+    // 1. قسم الأنشطة (الربط المباشر بقاعدة بيانات التراخيص)
     if (response.activities && response.activities.length > 0) {
         finalHTML += `<div class="result-section mb-3">
-            <h6 class="text-primary"><i class="bi bi-factory"></i> الأنشطة المقترحة:</h6>
+            <h6 class="text-primary"><i class="bi bi-info-circle-fill"></i> اختر النشاط لعرض تفاصيل الترخيص:</h6>
             <div class="d-flex flex-wrap gap-2">`;
             
-        response.activities.slice(0, 3).forEach(act => {
-            // --- أ: جلب المسمى العربي ---
-            let activityName = act.text || act.name || 'نشاط غير مسمى';
-            const activityId = act.id; // المعرف الإنجليزي الهام للبرمجة
-
-            if (!act.text && !act.name && activityId) {
+        response.activities.slice(0, 5).forEach(act => {
+            const activityId = act.id || act.value;
+            
+            // --- أولاً: تعريب مسمى النشاط ---
+            let activityName = act.text || act.name;
+            if (!activityName && activityId) {
                 const mainSelect = document.getElementById('activityTypeSelect');
-                if (mainSelect) {
-                    const option = mainSelect.querySelector(`option[value="${activityId}"]`);
-                    activityName = option ? option.text : activityId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                } else {
-                    activityName = activityId;
-                }
+                const option = mainSelect?.querySelector(`option[value="${activityId}"]`);
+                activityName = option ? option.text : activityId.replace(/_/g, ' ');
             }
+            activityName = activityName || 'نشاط غير مسمى';
 
-            // --- ب: تعديل الحدث (onclick) لكسر الحلقة المفرغة ---
-            // نتحقق أولاً هل دالة الاختيار موجودة في window؟ إذا نعم ننفذها بالـ ID
+            // --- ثانياً: الحدث التنفيذي (عرض البيانات + تحديث الواجهة) ---
+            // نستخدم دالة خاصة لطلب عرض التراخيص دون البحث الدلالي مجدداً
             const clickAction = `
+                // 1. تحديث لوحة التحكم (الخلفية)
                 if (window.selectActivityType) {
                     window.selectActivityType('${activityId}', '${activityName}');
-                    // إخفاء واجهة المساعد اختيارياً للتركيز على الشاشة المحدثة
-                    if(window.assistantUI && window.assistantUI.close) window.assistantUI.close();
+                }
+                
+                // 2. أمر المساعد بجلب عرض التراخيص (بدون إغلاق المساعد)
+                if (window.assistant && window.assistant.showLicenseDetails) {
+                    window.assistant.showLicenseDetails('${activityId}');
                 } else {
-                    window.assistantUI.sendMessage('${activityName}');
+                    // حل بديل: إرسال استفسار مباشر ومحدد للمساعد
+                    window.assistantUI.sendMessage('عرض بيانات ترخيص نشاط ${activityName}');
                 }
             `;
 
             finalHTML += `
-            <span class="badge bg-light text-dark border p-2" 
-                  style="cursor:pointer; transition: 0.3s;" 
-                  onmouseover="this.style.backgroundColor='#e2e6ea'" 
-                  onmouseout="this.style.backgroundColor='#f8f9fa'"
+            <span class="badge bg-white text-primary border border-primary p-2" 
+                  style="cursor:pointer; transition: all 0.2s; font-size: 0.9rem;" 
+                  onmouseover="this.style.backgroundColor='#f0f7ff'; this.style.transform='scale(1.05)';" 
+                  onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';"
                   onclick="${clickAction}">
-                ${activityName} <small class="text-muted">(${Math.round((act.score || 0) * 100)}%)</small>
+                <i class="bi bi-search small"></i> ${activityName} 
+                <small class="text-muted ms-1">${Math.round((act.score || 0) * 100)}%</small>
             </span>`;
         });
         finalHTML += `</div></div>`;
     }
+
+    // إضافة بقية الأجزاء (المناطق أو القرارات) إذا وجدت في الرد
+    if (response.areas && response.areas.length > 0) {
+        // يمكنك إضافة منطق مشابه للمناطق هنا
+    }
+
+    finalHTML += `</div>`;
+    return finalHTML;
+}
 
     // 2. قسم المناطق الصناعية (إضافة فحص للحقول name و text)
     if (response.areas && response.areas.length > 0) {
@@ -868,6 +881,7 @@ formatMultiMatch(response) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
 
 
 
