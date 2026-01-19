@@ -27,33 +27,51 @@ class ResponseFormatter {
         };
     }
     
-// ==================== تنسيق الرد المتعدد (الجديد) ====================
-    // ==================== تنسيق الرد المتعدد (النسخة المصلحة) ====================
+
+    // ==================== تنسيق الرد المتعدد (النسخة المصلحة نهائياً) ====================
 formatMultiMatch(response) {
     let finalHTML = `<div class="multi-response-container">
         <p class="mb-3">${response.text || 'إليك النتائج التي وجدتها:'}</p>`;
 
-    // 1. قسم الأنشطة (إضافة فحص للحقول name و text)
+    // 1. قسم الأنشطة
     if (response.activities && response.activities.length > 0) {
         finalHTML += `<div class="result-section mb-3">
             <h6 class="text-primary"><i class="bi bi-factory"></i> الأنشطة المقترحة:</h6>
             <div class="d-flex flex-wrap gap-2">`;
+            
         response.activities.slice(0, 3).forEach(act => {
-            // صمام أمان لجلب الاسم (تم إضافة act.id لضمان عرض مسمى النشاط)
-            // --- تعديل لتعريب مسميات المساعد دلالياً ---
-let activityName = act.text || act.name || 'نشاط غير مسمى';
+            // --- أ: جلب المسمى العربي ---
+            let activityName = act.text || act.name || 'نشاط غير مسمى';
+            const activityId = act.id; // المعرف الإنجليزي الهام للبرمجة
 
-// إذا كان الاسم الحالي غير موجود أو إنجليزي (يساوي الـ id)، ابحث عن العربي
-if (!act.text && !act.name && act.id) {
-    const mainSelect = document.getElementById('activityTypeSelect');
-    if (mainSelect) {
-        const option = mainSelect.querySelector(`option[value="${act.id}"]`);
-        activityName = option ? option.text : act.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    } else {
-        activityName = act.id;
-    }
-}
-            finalHTML += `<span class="badge bg-light text-dark border p-2" style="cursor:pointer" onclick="window.assistantUI.sendMessage('${activityName}')">
+            if (!act.text && !act.name && activityId) {
+                const mainSelect = document.getElementById('activityTypeSelect');
+                if (mainSelect) {
+                    const option = mainSelect.querySelector(`option[value="${activityId}"]`);
+                    activityName = option ? option.text : activityId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                } else {
+                    activityName = activityId;
+                }
+            }
+
+            // --- ب: تعديل الحدث (onclick) لكسر الحلقة المفرغة ---
+            // نتحقق أولاً هل دالة الاختيار موجودة في window؟ إذا نعم ننفذها بالـ ID
+            const clickAction = `
+                if (window.selectActivityType) {
+                    window.selectActivityType('${activityId}', '${activityName}');
+                    // إخفاء واجهة المساعد اختيارياً للتركيز على الشاشة المحدثة
+                    if(window.assistantUI && window.assistantUI.close) window.assistantUI.close();
+                } else {
+                    window.assistantUI.sendMessage('${activityName}');
+                }
+            `;
+
+            finalHTML += `
+            <span class="badge bg-light text-dark border p-2" 
+                  style="cursor:pointer; transition: 0.3s;" 
+                  onmouseover="this.style.backgroundColor='#e2e6ea'" 
+                  onmouseout="this.style.backgroundColor='#f8f9fa'"
+                  onclick="${clickAction}">
                 ${activityName} <small class="text-muted">(${Math.round((act.score || 0) * 100)}%)</small>
             </span>`;
         });
@@ -850,5 +868,6 @@ if (!act.text && !act.name && act.id) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
 
 
