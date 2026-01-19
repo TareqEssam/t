@@ -1,7 +1,6 @@
 /****************************************************************************
- * 🧠 AI Assistant Core - نسخة الـ Vector المتطورة (V7)
- * - الحفاظ على الذاكرة السياقية
- * - المعالجة الدلالية عبر المتجهات السحابية
+ * 🧠 AI Assistant Core - نسخة الـ Vector المتطورة (V7.1)
+ * - تم إصلاح أخطاء السياق والدوال المفقودة
  ****************************************************************************/
 
 class AssistantAI {
@@ -24,13 +23,19 @@ class AssistantAI {
     }
     
     initialize() {
-        // الانتظار حتى يصبح المحرك جاهزاً
         window.addEventListener('vectorEngineReady', () => {
             console.log('✅ المساعد الذكي ارتبط بمحرك المتجهات (الذاكرة مفعلة)');
         });
     }
 
     // ==================== إدارة الذاكرة والسياق ====================
+    
+    // 1. الدالة المفقودة التي سببت الخطأ (تمت إضافتها هنا)
+    isFollowUpQuery(text) {
+        const followUpWords = ['هناك', 'فيها', 'دي', 'المكان ده', 'الحوافز', 'الشروط', 'النشاط ده', 'عايز افتح', 'كيف', 'ما هي'];
+        return followUpWords.some(word => text.includes(word));
+    }
+
     updateMemory(query, response, entity = null) {
         this.conversationMemory.push({ query, response, timestamp: Date.now() });
         if (this.conversationMemory.length > this.maxMemory) this.conversationMemory.shift();
@@ -42,49 +47,50 @@ class AssistantAI {
     }
 
     // ==================== معالجة الاستعلام الذكي ====================
-async getResponse(query) {
-    this.stats.totalQueries++;
-    const normalized = query.trim();
-    
-    // 1. التعامل مع الأوامر السريعة
-    if (normalized === 'help' || normalized === 'مساعدة') {
-        return this.handleCommand('help');
-    }
+    async getResponse(query) {
+        this.stats.totalQueries++;
+        const normalized = query.trim();
+        
+        // التعامل مع الأوامر السريعة
+        if (normalized === 'help' || normalized === 'مساعدة') {
+            return this.handleCommand('help');
+        }
 
-    // 2. التحقق من وجود سياق (أسئلة متتابعة)
-    let searchQuery = normalized;
-    if (this.isFollowUpQuery(normalized) && this.currentContext.lastEntity) {
-        searchQuery = `${this.currentContext.lastEntity} ${normalized}`;
-        console.log("🔗 ربط السؤال بالسياق السابق:", searchQuery);
-    }
+        // الربط بالسياق السابق
+        let searchQuery = normalized;
+        if (this.isFollowUpQuery(normalized) && this.currentContext.lastEntity) {
+            searchQuery = `${this.currentContext.lastEntity} ${normalized}`;
+            console.log("🔗 ربط السؤال بالسياق السابق:", searchQuery);
+        }
 
-    // 3. الاستعلام من محرك المتجهات 
-    // قمنا بتعديله ليرسل searchQuery فقط ليتوافق مع الدالة الجديدة
-    return await this.handleComplexQuery(searchQuery);
-}
+        return await this.handleComplexQuery(searchQuery);
+    }
 
     async handleComplexQuery(text) {
         try {
-            // تنفيذ البحث الدلالي عبر المحرك
             const searchResults = await window.vEngine.search(text);
             
-            // صياغة الرد بناءً على أفضل النتائج (مع فحص الأمان)
             const response = {
                 text: "",
                 type: "multi-match",
                 data: searchResults,
                 context: {
-                    // نتحقق من وجود نتائج قبل محاولة قراءة العنصر [0]
                     hasActivity: searchResults.activities && searchResults.activities.length > 0,
                     hasIndustrial: searchResults.industrial && searchResults.industrial.length > 0,
                     hasDecision: searchResults.decision104 && searchResults.decision104.length > 0
                 }
             };
 
-            // بناء نص الرد الذكي
+            // بناء الرد وتحديث الذاكرة
             if (response.context.hasActivity) {
                 const topAct = searchResults.activities[0];
-                response.text = `بناءً على تحليلي، يبدو أنك تستفسر عن نشاط "${topAct.name || topAct.activity}". `;
+                const entityName = topAct.name || topAct.activity;
+                response.text = `بناءً على تحليلي، يبدو أنك تستفسر عن نشاط "${entityName}". إليك التفاصيل المتاحة:`;
+                this.updateMemory(text, response.text, entityName);
+            } else if (response.context.hasIndustrial) {
+                const topArea = searchResults.industrial[0];
+                response.text = `وجدت معلومات عن المنطقة الصناعية "${topArea.name || 'المختارة'}":`;
+                this.updateMemory(text, response.text, topArea.name);
             } else {
                 response.text = "لقد حللت طلبك، ووجدت مجموعة من المعلومات المتعلقة بالمناطق الصناعية والقرارات المنظمة: ";
             }
@@ -93,26 +99,18 @@ async getResponse(query) {
 
         } catch (error) {
             console.error("Vector Core Error:", error);
-            // رد احتياطي في حالة الفشل تماماً
             return {
                 text: "عذراً، واجهت صعوبة في الربط الدلالي بين القواعد، سأحاول مساعدتك بشكل عام.",
-                type: "text"
+                type: "error"
             };
         }
-    }
-
-    generateResponseText(results, query) {
-        if (results.areas.length > 0 && results.activities.length > 0) {
-            return `لقد وجدت أنك تسأل عن ${query}. إليك الأنشطة المتعلقة والمناطق الصناعية المتاحة وحوافزها:`;
-        }
-        return `إليك أفضل النتائج التي وجدتها بخصوص ${query}:`;
     }
 
     handleCommand(command) {
         if (command === 'help') {
             return {
                 type: 'help',
-                text: 'أنا مساعدك الذكي. يمكنك سؤالي عن الأنشطة، المناطق الصناعية، أو حوافز القرار 104 بشكل مباشر أو متتابع.',
+                text: 'أنا مساعدك الذكي. يمكنك سؤالي عن الأنشطة، المناطق الصناعية، أو حوافز القرار 104.',
                 confidence: 1
             };
         }
@@ -120,5 +118,4 @@ async getResponse(query) {
 }
 
 // تصدير المساعد للنافذة العالمية
-
 window.assistant = new AssistantAI();
