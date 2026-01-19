@@ -28,50 +28,59 @@ class ResponseFormatter {
     }
     
 // ==================== تنسيق الرد المتعدد (الجديد) ====================
-    formatMultiMatch(response) {
-        let finalHTML = `<div class="multi-response-container">
-            <p class="mb-3">${response.text}</p>`;
+    // ==================== تنسيق الرد المتعدد (النسخة المصلحة) ====================
+formatMultiMatch(response) {
+    let finalHTML = `<div class="multi-response-container">
+        <p class="mb-3">${response.text || 'إليك النتائج التي وجدتها:'}</p>`;
 
-        // 1. قسم الأنشطة (إذا وجدت)
-        if (response.activities && response.activities.length > 0) {
-            finalHTML += `<div class="result-section mb-3">
-                <h6 class="text-primary"><i class="bi bi-factory"></i> الأنشطة المقترحة:</h6>
-                <div class="d-flex flex-wrap gap-2">`;
-            response.activities.slice(0, 3).forEach(act => {
-                finalHTML += `<span class="badge bg-light text-dark border p-2" style="cursor:pointer" onclick="updateActivityDetails('${act.value}')">
-                    ${act.text} <small class="text-muted">(${Math.round(act.score * 100)}%)</small>
-                </span>`;
-            });
-            finalHTML += `</div></div>`;
-        }
+    // 1. قسم الأنشطة (إضافة فحص للحقول name و text)
+    if (response.activities && response.activities.length > 0) {
+        finalHTML += `<div class="result-section mb-3">
+            <h6 class="text-primary"><i class="bi bi-factory"></i> الأنشطة المقترحة:</h6>
+            <div class="d-flex flex-wrap gap-2">`;
+        response.activities.slice(0, 3).forEach(act => {
+            // صمام أمان لجلب الاسم
+            const activityName = act.text || act.name || act.value || 'نشاط غير مسمى';
+            finalHTML += `<span class="badge bg-light text-dark border p-2" style="cursor:pointer" onclick="window.assistantUI.sendMessage('${activityName}')">
+                ${activityName} <small class="text-muted">(${Math.round((act.score || 0) * 100)}%)</small>
+            </span>`;
+        });
+        finalHTML += `</div></div>`;
+    }
 
-        // 2. قسم المناطق الصناعية
-        if (response.areas && response.areas.length > 0) {
-            finalHTML += `<div class="result-section mb-3">
-                <h6 class="text-success"><i class="bi bi-geo-alt"></i> المناطق المتاحة:</h6>
-                <ul class="list-unstyled">`;
-            response.areas.slice(0, 2).forEach(area => {
-                finalHTML += `<li class="mb-2 p-2 bg-white rounded shadow-sm border-start border-success border-4">
-                    <strong>${area.text}</strong> - ${area.dependency || ''}
-                </li>`;
-            });
-            finalHTML += `</ul></div>`;
-        }
+    // 2. قسم المناطق الصناعية (إضافة فحص للحقول name و text)
+    if (response.areas && response.areas.length > 0) {
+        finalHTML += `<div class="result-section mb-3">
+            <h6 class="text-success"><i class="bi bi-geo-alt"></i> المناطق المتاحة:</h6>
+            <ul class="list-unstyled">`;
+        response.areas.slice(0, 2).forEach(area => {
+            // صمام أمان لجلب اسم المنطقة
+            const areaName = area.name || area.text || 'منطقة غير مسمى';
+            const dep = area.dependency || area.governorate || '';
+            finalHTML += `<li class="mb-2 p-2 bg-white rounded shadow-sm border-start border-success border-4" 
+                          style="cursor:pointer" onclick="window.assistantUI.sendMessage('${areaName}')">
+                <strong>${areaName}</strong> ${dep ? ' - ' + dep : ''}
+            </li>`;
+        });
+        finalHTML += `</ul></div>`;
+    }
 
-        // 3. قسم القرار 104 (الحوافز)
-        if (response.decision104 && response.decision104.length > 0) {
+    // 3. قسم القرار 104 (الحوافز)
+    if (response.decision104 && response.decision104.length > 0) {
+        const decisionText = response.decision104[0].text || response.decision104[0].activity || '';
+        if (decisionText) {
             finalHTML += `<div class="result-section mb-3">
                 <h6 class="text-warning"><i class="bi bi-star"></i> حوافز القرار 104:</h6>
                 <div class="p-2 bg-light rounded italic" style="font-size:0.85rem;">
-                    ${response.decision104[0].text}
+                    ${decisionText}
                 </div>
             </div>`;
         }
-
-        finalHTML += `</div>`;
-
-        return this.createCard('info', 'نتائج البحث الدلالي', finalHTML, response.confidence);
     }
+
+    finalHTML += `</div>`;
+    return this.createCard('info', 'نتائج البحث الدلالي', finalHTML, response.confidence || 0.8);
+}
     // ==================== تنسيق الرد الرئيسي المحدث (V7) ====================
     formatResponse(response) {
         if (!response || !response.type) {
@@ -827,4 +836,5 @@ class ResponseFormatter {
 
 // ==================== التصدير ====================
 window.ResponseFormatter = ResponseFormatter;
+
 console.log('✅ response_formatter.js تم التحميل بنجاح');
