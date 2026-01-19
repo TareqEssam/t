@@ -28,13 +28,12 @@ class ResponseFormatter {
     }
     
 
-    // ==================== تنسيق الرد المتعدد (النسخة المصلحة نهائياً) ====================
-// ==================== تنسيق الرد المتعدد (النسخة الذكية للاستفسار عن التراخيص) ====================
+    // ==================== تنسيق الرد المتعدد (نسخة مستقرة ومعربة) ====================
 formatMultiMatch(response) {
     let finalHTML = `<div class="multi-response-container">
         <p class="mb-3">${response.text || 'إليك الأنشطة الأكثر مطابقة لاستفسارك:'}</p>`;
 
-    // 1. قسم الأنشطة (الربط المباشر بقاعدة بيانات التراخيص)
+    // 1. قسم الأنشطة
     if (response.activities && response.activities.length > 0) {
         finalHTML += `<div class="result-section mb-3">
             <h6 class="text-primary"><i class="bi bi-info-circle-fill"></i> اختر النشاط لعرض تفاصيل الترخيص:</h6>
@@ -43,36 +42,29 @@ formatMultiMatch(response) {
         response.activities.slice(0, 5).forEach(act => {
             const activityId = act.id || act.value;
             
-            // --- أولاً: تعريب مسمى النشاط ---
+            // --- أ: تعريب المسمى (بدون استخدام رموز ?. المسببة للخطأ) ---
             let activityName = act.text || act.name;
-            if (!activityName && activityId) {
-                const mainSelect = document.getElementById('activityTypeSelect');
-                const option = mainSelect?.querySelector(`option[value="${activityId}"]`);
-                activityName = option ? option.text : activityId.replace(/_/g, ' ');
+            const mainSelect = document.getElementById('activityTypeSelect');
+            
+            if (!activityName && activityId && mainSelect) {
+                // استخدام الطريقة التقليدية الآمنة للبحث
+                const option = mainSelect.querySelector('option[value="' + activityId + '"]');
+                if (option) {
+                    activityName = option.text;
+                } else {
+                    activityName = activityId.replace(/_/g, ' ');
+                }
             }
             activityName = activityName || 'نشاط غير مسمى';
 
-            // --- ثانياً: الحدث التنفيذي (عرض البيانات + تحديث الواجهة) ---
-            // نستخدم دالة خاصة لطلب عرض التراخيص دون البحث الدلالي مجدداً
-            const clickAction = `
-                // 1. تحديث لوحة التحكم (الخلفية)
-                if (window.selectActivityType) {
-                    window.selectActivityType('${activityId}', '${activityName}');
-                }
-                
-                // 2. أمر المساعد بجلب عرض التراخيص (بدون إغلاق المساعد)
-                if (window.assistant && window.assistant.showLicenseDetails) {
-                    window.assistant.showLicenseDetails('${activityId}');
-                } else {
-                    // حل بديل: إرسال استفسار مباشر ومحدد للمساعد
-                    window.assistantUI.sendMessage('عرض بيانات ترخيص نشاط ${activityName}');
-                }
-            `;
+            // --- ب: بناء حدث الضغط بشكل نصي آمن ---
+            // تم دمج الدوال في سطر واحد لتجنب مشاكل المسافات في Template Literals
+            const clickAction = "if(window.selectActivityType){window.selectActivityType('" + activityId + "','" + activityName + "');} if(window.assistant && window.assistant.showLicenseDetails){window.assistant.showLicenseDetails('" + activityId + "');} else {window.assistantUI.sendMessage('عرض بيانات ترخيص " + activityName + "');}";
 
             finalHTML += `
             <span class="badge bg-white text-primary border border-primary p-2" 
                   style="cursor:pointer; transition: all 0.2s; font-size: 0.9rem;" 
-                  onmouseover="this.style.backgroundColor='#f0f7ff'; this.style.transform='scale(1.05)';" 
+                  onmouseover="this.style.backgroundColor='#f0f7ff'; this.style.transform='scale(1.02)';" 
                   onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';"
                   onclick="${clickAction}">
                 <i class="bi bi-search small"></i> ${activityName} 
@@ -80,11 +72,6 @@ formatMultiMatch(response) {
             </span>`;
         });
         finalHTML += `</div></div>`;
-    }
-
-    // إضافة بقية الأجزاء (المناطق أو القرارات) إذا وجدت في الرد
-    if (response.areas && response.areas.length > 0) {
-        // يمكنك إضافة منطق مشابه للمناطق هنا
     }
 
     finalHTML += `</div>`;
@@ -881,6 +868,7 @@ formatMultiMatch(response) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
 
 
 
