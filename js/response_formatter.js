@@ -39,8 +39,8 @@ formatMultiMatch(response) {
             <h6 class="text-primary"><i class="bi bi-factory"></i> الأنشطة المقترحة:</h6>
             <div class="d-flex flex-wrap gap-2">`;
         response.activities.slice(0, 3).forEach(act => {
-            // صمام أمان لجلب الاسم
-            const activityName = act.text || act.name || act.value || 'نشاط غير مسمى';
+            // صمام أمان لجلب الاسم (تم إضافة act.id لضمان عرض مسمى النشاط)
+            const activityName = act.text || act.name || act.id || act.value || 'نشاط غير مسمى';
             finalHTML += `<span class="badge bg-light text-dark border p-2" style="cursor:pointer" onclick="window.assistantUI.sendMessage('${activityName}')">
                 ${activityName} <small class="text-muted">(${Math.round((act.score || 0) * 100)}%)</small>
             </span>`;
@@ -55,7 +55,7 @@ formatMultiMatch(response) {
             <ul class="list-unstyled">`;
         response.areas.slice(0, 2).forEach(area => {
             // صمام أمان لجلب اسم المنطقة
-            const areaName = area.name || area.text || 'منطقة غير مسمى';
+            const areaName = area.id || area.name || area.text || 'منطقة غير مسمى';
             const dep = area.dependency || area.governorate || '';
             finalHTML += `<li class="mb-2 p-2 bg-white rounded shadow-sm border-start border-success border-4" 
                           style="cursor:pointer" onclick="window.assistantUI.sendMessage('${areaName}')">
@@ -838,3 +838,4 @@ formatMultiMatch(response) {
 window.ResponseFormatter = ResponseFormatter;
 
 console.log('✅ response_formatter.js تم التحميل بنجاح');
+
