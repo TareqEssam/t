@@ -128,8 +128,18 @@ class AssistantAI {
             subType: null,
             isFollowUp: false,
             needsDetails: false,
+            isConfirmation: false,
             entities: []
         };
+        
+        // ══════ الكشف عن التأكيد (نعم/أوافق/عايز) ══════
+        const confirmationPatterns = ['نعم', 'أيوه', 'طبعا', 'أكيد', 'موافق', 'عايز', 'أريد', 'yes', 'ok'];
+        if (confirmationPatterns.some(p => text.toLowerCase().includes(p))) {
+            intent.isConfirmation = true;
+            intent.isFollowUp = true;
+            this.stats.contextualQueries++;
+            return intent; // إرجاع فوري للتأكيدات
+        }
         
         // ══════ الكشف عن الأسئلة التابعة ══════
         const followUpPatterns = [
@@ -219,6 +229,11 @@ class AssistantAI {
      */
     async processIntelligentQuery(query, intent) {
         try {
+            // معالجة التأكيدات ("نعم" بعد سؤال سابق)
+            if (intent.isConfirmation && this.currentContext.lastResponse) {
+                return await this.handleConfirmation();
+            }
+            
             // التحقق من جاهزية المحرك
             if (!window.vEngine || !window.vEngine.isReady) {
                 return this.createResponse(
@@ -260,6 +275,47 @@ class AssistantAI {
     }
     
     /**
+     * معالجة التأكيد ("نعم" بعد سؤال)
+     */
+    async handleConfirmation() {
+        console.log('✅ تم اكتشاف تأكيد - استرجاع السياق السابق');
+        
+        const lastResponse = this.currentContext.lastResponse;
+        
+        // إذا كان الرد السابق يحتوي على بيانات مخزنة
+        if (this.currentContext.relatedData) {
+            const data = this.currentContext.relatedData;
+            
+            // إذا كان نشاط
+            if (data.details) {
+                return this.createResponse(
+                    this.formatFullActivityInfo(data.text, data.details),
+                    'activity_full',
+                    1,
+                    { data }
+                );
+            }
+            
+            // إذا كانت منطقة صناعية
+            if (data.governorate) {
+                return this.createResponse(
+                    this.formatIndustrialAreaInfo(data),
+                    'area_full',
+                    1,
+                    { area: data }
+                );
+            }
+        }
+        
+        // إذا لم يكن هناك سياق واضح
+        return this.createResponse(
+            'عذراً، لم أفهم على ماذا توافق. هل يمكنك إعادة صياغة السؤال؟',
+            'no_context',
+            0.3
+        );
+    }
+    
+    /**
      * ═══════════════════════════════════════════════════════════════
      * معالجة استعلامات الأنشطة
      * ═══════════════════════════════════════════════════════════════
@@ -278,23 +334,30 @@ class AssistantAI {
         const topActivity = activities[0];
         const activityId = topActivity.id;
         
+        console.log(`🎯 أفضل نشاط مطابق: ${activityId} (${Math.round(topActivity.score * 100)}%)`);
+        
         // جلب التفاصيل من قاعدة البيانات المحلية
         const detailedData = this.getActivityDetails(activityId);
         
         if (!detailedData) {
+            console.warn('⚠️ لم يتم العثور على تفاصيل في masterActivityDB');
             return this.createResponse(
-                `وجدت نشاط "${activityId}" لكن التفاصيل غير متوفرة حالياً.`,
+                `وجدت نشاط "${activityId}" لكن التفاصيل غير متوفرة حالياً في قاعدة البيانات.`,
                 'partial_match',
                 topActivity.score,
                 { activities }
             );
         }
         
-        // تخزين في السياق
+        // تخزين في السياق للأسئلة التابعة
         this.currentContext.relatedData = detailedData;
+        this.currentContext.lastEntity = detailedData.text;
+        this.currentContext.lastEntityType = 'activity';
         
-        // بناء الرد حسب النوع الفرعي
-        return this.buildActivityResponse(detailedData, intent.subType, topActivity.score);
+        console.log(`✅ تم تحميل بيانات: ${detailedData.text}`);
+        
+        // عرض التفاصيل الكاملة مباشرة (بدون سؤال المستخدم)
+        return this.buildActivityResponse(detailedData, intent.subType, topActivity.score, true);
     }
     
     /**
@@ -313,11 +376,11 @@ class AssistantAI {
     /**
      * بناء رد تفصيلي عن النشاط
      */
-    buildActivityResponse(data, subType, confidence) {
+    buildActivityResponse(data, subType, confidence, showFullDetails = false) {
         const d = data.details || {};
         
-        // إذا كان سؤال محدد عن جزء معين
-        if (subType) {
+        // إذا كان سؤال محدد عن جزء معين (وليس طلب عام)
+        if (subType && !showFullDetails) {
             switch (subType) {
                 case 'licenses':
                     return this.createResponse(
@@ -369,7 +432,7 @@ class AssistantAI {
             }
         }
         
-        // رد شامل إذا لم يُحدد
+        // رد شامل (الافتراضي الجديد)
         return this.createResponse(
             this.formatFullActivityInfo(data.text, d),
             'activity_full',
@@ -561,6 +624,45 @@ ${area.x && area.y ? `📌 **الإحداثيات:** ${area.y}, ${area.x}` : ''}
         
         const best = allResults[0];
         
+        console.log(`🎯 أفضل نتيجة عامة: ${best.id} - نوع: ${best.type} - نسبة: ${Math.round(best.score * 100)}%`);
+        
+        // إذا كانت النتيجة الأفضل نشاط، نعرض تفاصيله مباشرة
+        if (best.type === 'activity' && best.score > 0.4) {
+            const detailedData = this.getActivityDetails(best.id);
+            
+            if (detailedData) {
+                this.currentContext.relatedData = detailedData;
+                this.currentContext.lastEntity = detailedData.text;
+                this.currentContext.lastEntityType = 'activity';
+                
+                return this.createResponse(
+                    this.formatFullActivityInfo(detailedData.text, detailedData.details),
+                    'activity_full',
+                    best.score,
+                    { data: detailedData }
+                );
+            }
+        }
+        
+        // إذا كانت منطقة صناعية
+        if (best.type === 'area' && best.score > 0.4) {
+            const areaData = this.getIndustrialAreaDetails(best.id);
+            
+            if (areaData) {
+                this.currentContext.relatedData = areaData;
+                this.currentContext.lastEntity = areaData.name;
+                this.currentContext.lastEntityType = 'area';
+                
+                return this.createResponse(
+                    this.formatIndustrialAreaInfo(areaData),
+                    'area_full',
+                    best.score,
+                    { area: areaData }
+                );
+            }
+        }
+        
+        // رد افتراضي مع خيارات
         return this.createResponse(
             `وجدت معلومات متعلقة بـ "${best.id}".\n\nنوع النتيجة: ${best.type === 'activity' ? 'نشاط' : best.type === 'area' ? 'منطقة صناعية' : 'قرار 104'}\n\nنسبة المطابقة: ${Math.round(best.score * 100)}%\n\nهل تريد التفاصيل الكاملة؟`,
             'multi_match',
