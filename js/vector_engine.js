@@ -124,24 +124,135 @@ class VectorEnginePro {
      * 📥 تحميل بيانات الفهرس من ملف JSON
      * ═══════════════════════════════════════════════════════════
      */
-    async loadIndexData(category, filePath) {
-        try {
-            const response = await fetch(filePath);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            const data = await response.json();
-            console.log(`📥 تحميل ${category}: ${data.length} عنصر`);
-            
-            for (const item of data) {
-                await this.knowledgeBase[category].addItem(item);
+    async loadDataFromJSON() {
+    console.log('📦 جاري تحميل البيانات...');
+    
+    // أولاً: محاولة استخدام البيانات من المتغيرات العالمية
+    await this.loadFromGlobalVariables();
+    
+    // إذا لم توجد بيانات كافية، استخدم البيانات المدمجة
+    const totalItems = 
+        this.knowledgeBase.activities.count() + 
+        this.knowledgeBase.industrial.count() + 
+        this.knowledgeBase.decision104.count();
+    
+    if (totalItems < 10) { // إذا كانت البيانات قليلة
+        console.log('📋 البيانات غير كافية، استخدام البيانات المدمجة...');
+        await this.loadEmbeddedData();
+    }
+    
+    console.log(`✅ تم تحميل ${totalItems} عنصر`);
+},
+
+async loadFromGlobalVariables() {
+    console.log('🔍 البحث عن البيانات في الذاكرة...');
+    
+    // قائمة المصادر المحتملة للبيانات
+    const dataSources = [
+        // المتجهات المحولة
+        { 
+            var: 'activityVectors', 
+            target: 'activities',
+            check: () => window.activityVectors && Array.isArray(window.activityVectors)
+        },
+        { 
+            var: 'industrialVectors', 
+            target: 'industrial',
+            check: () => window.industrialVectors && Array.isArray(window.industrialVectors)
+        },
+        { 
+            var: 'decision104Vectors', 
+            target: 'decision104',
+            check: () => window.decision104Vectors && Array.isArray(window.decision104Vectors)
+        },
+        
+        // قواعد البيانات الأصلية
+        { 
+            var: 'masterActivityDB', 
+            target: 'activities',
+            check: () => window.masterActivityDB && Array.isArray(window.masterActivityDB),
+            transform: (item) => ({
+                id: item.value || item.text || `act_${Date.now()}`,
+                text: item.text || item.value || 'نشاط غير معروف',
+                metadata: item
+            })
+        },
+        { 
+            var: 'industrialAreasData', 
+            target: 'industrial',
+            check: () => window.industrialAreasData && Array.isArray(window.industrialAreasData),
+            transform: (item) => ({
+                id: item.name || `area_${Date.now()}`,
+                text: item.name || 'منطقة غير معروفة',
+                metadata: item
+            })
+        },
+        { 
+            var: 'sectorAData', 
+            target: 'decision104',
+            check: () => window.sectorAData && typeof window.sectorAData === 'object',
+            transform: (item) => {
+                // معالجة خاصة للقرار 104
+                if (typeof item === 'string') {
+                    return {
+                        id: `104_${item.substring(0, 20).replace(/\s+/g, '_')}`,
+                        text: item,
+                        metadata: { type: 'decision104' }
+                    };
+                }
+                return null;
             }
+        }
+    ];
+    
+    let loadedCount = 0;
+    
+    for (const source of dataSources) {
+        if (source.check()) {
+            console.log(`   📥 تحميل ${source.var} إلى ${source.target}...`);
+            const dataArray = window[source.var];
             
-            console.log(`✅ ${category}: ${this.knowledgeBase[category].count()} عنصر محمل`);
-        } catch (error) {
-            console.error(`❌ فشل تحميل ${category}:`, error);
-            throw error;
+            if (Array.isArray(dataArray)) {
+                for (const item of dataArray) {
+                    try {
+                        const processedItem = source.transform ? source.transform(item) : item;
+                        if (processedItem) {
+                            await this.knowledgeBase[source.target].addItem(processedItem);
+                            loadedCount++;
+                        }
+                    } catch (error) {
+                        console.warn(`⚠️ خطأ في معالجة ${source.var}:`, error);
+                    }
+                }
+            } else if (typeof dataArray === 'object') {
+                // معالجة الكائنات (مثل sectorAData)
+                for (const [key, value] of Object.entries(dataArray)) {
+                    if (Array.isArray(value)) {
+                        for (const item of value) {
+                            const processedItem = source.transform ? source.transform(item) : {
+                                id: `104_${key}_${item.substring(0, 20).replace(/\s+/g, '_')}`,
+                                text: item,
+                                metadata: { category: key, type: 'decision104' }
+                            };
+                            if (processedItem) {
+                                await this.knowledgeBase[source.target].addItem(processedItem);
+                                loadedCount++;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
+    
+    if (loadedCount > 0) {
+        console.log(`✅ تم تحميل ${loadedCount} عنصر من الذاكرة`);
+    } else {
+        console.log('ℹ️ لم توجد بيانات في الذاكرة');
+    }
+    
+    return loadedCount;
+}
     
     /**
      * ═══════════════════════════════════════════════════════════
@@ -801,3 +912,229 @@ window.dispatchEvent(new CustomEvent('vectorEngineReady', {
     }
 }));
 
+
+/****************************************************************************
+ * 🔬 تشخيص النظام - إصدار احترافي
+ ****************************************************************************/
+
+class SystemDiagnostic {
+    constructor() {
+        this.results = {};
+        this.run();
+    }
+    
+    async run() {
+        console.log('🔬 === بدء التشخيص الشامل للنظام ===');
+        
+        await this.checkFilePaths();
+        await this.checkDataVariables();
+        await this.checkEngineStatus();
+        await this.checkNetworkAccess();
+        await this.checkDirectoryStructure();
+        
+        this.generateReport();
+    }
+    
+    async checkFilePaths() {
+        console.log('📁 التحقق من مسارات الملفات...');
+        
+        const testPaths = [
+            './data/activity_vectors_v5.json',
+            '../data/activity_vectors_v5.json',
+            'data/activity_vectors_v5.json',
+            '/data/activity_vectors_v5.json'
+        ];
+        
+        this.results.paths = {};
+        
+        for (const path of testPaths) {
+            try {
+                const response = await fetch(path, { method: 'HEAD' });
+                this.results.paths[path] = {
+                    exists: response.ok,
+                    status: response.status,
+                    url: response.url
+                };
+                console.log(`  ${response.ok ? '✅' : '❌'} ${path}: ${response.ok ? 'موجود' : 'غير موجود'} (${response.status})`);
+            } catch (error) {
+                this.results.paths[path] = {
+                    exists: false,
+                    error: error.message
+                };
+                console.log(`  ❌ ${path}: خطأ - ${error.message}`);
+            }
+        }
+    }
+    
+    async checkDataVariables() {
+        console.log('📊 التحقق من متغيرات البيانات في الذاكرة...');
+        
+        this.results.variables = {
+            activityVectors: {
+                exists: typeof window.activityVectors !== 'undefined',
+                type: typeof window.activityVectors,
+                length: window.activityVectors?.length || 0
+            },
+            industrialVectors: {
+                exists: typeof window.industrialVectors !== 'undefined',
+                type: typeof window.industrialVectors,
+                length: window.industrialVectors?.length || 0
+            },
+            decision104Vectors: {
+                exists: typeof window.decision104Vectors !== 'undefined',
+                type: typeof window.decision104Vectors,
+                length: window.decision104Vectors?.length || 0
+            },
+            masterActivityDB: {
+                exists: typeof window.masterActivityDB !== 'undefined',
+                type: typeof window.masterActivityDB,
+                length: window.masterActivityDB?.length || 0
+            },
+            industrialAreasData: {
+                exists: typeof window.industrialAreasData !== 'undefined',
+                type: typeof window.industrialAreasData,
+                length: window.industrialAreasData?.length || 0
+            },
+            sectorAData: {
+                exists: typeof window.sectorAData !== 'undefined',
+                type: typeof window.sectorAData,
+                isObject: typeof window.sectorAData === 'object'
+            }
+        };
+        
+        Object.entries(this.results.variables).forEach(([key, data]) => {
+            console.log(`  ${data.exists ? '✅' : '❌'} ${key}: ${data.exists ? `موجود (${data.type}, ${data.length || 'N/A'})` : 'غير موجود'}`);
+        });
+    }
+    
+    async checkEngineStatus() {
+        console.log('🚀 التحقق من حالة المحرك...');
+        
+        this.results.engine = {
+            vEngine: {
+                exists: typeof window.vEngine !== 'undefined',
+                isReady: window.vEngine?.isReady || false,
+                type: typeof window.vEngine
+            },
+            vectorEngine: {
+                exists: typeof window.vectorEngine !== 'undefined',
+                isReady: window.vectorEngine?.isReady || false
+            },
+            assistant: {
+                exists: typeof window.assistant !== 'undefined',
+                isReady: window.assistant?.isReady || false
+            }
+        };
+        
+        console.log(`  ${this.results.engine.vEngine.exists ? '✅' : '❌'} window.vEngine: ${this.results.engine.vEngine.exists ? `موجود (جاهز: ${this.results.engine.vEngine.isReady})` : 'غير موجود'}`);
+        console.log(`  ${this.results.engine.vectorEngine.exists ? '✅' : '❌'} window.vectorEngine: ${this.results.engine.vectorEngine.exists ? `موجود (جاهز: ${this.results.engine.vectorEngine.isReady})` : 'غير موجود'}`);
+        console.log(`  ${this.results.engine.assistant.exists ? '✅' : '❌'} window.assistant: ${this.results.engine.assistant.exists ? `موجود (جاهز: ${this.results.engine.assistant.isReady})` : 'غير موجود'}`);
+    }
+    
+    async checkNetworkAccess() {
+        console.log('🌐 التحقق من الوصول للشبكة...');
+        
+        try {
+            const response = await fetch(window.location.href, { method: 'HEAD' });
+            this.results.network = {
+                canAccessOrigin: true,
+                origin: window.location.origin,
+                basePath: window.location.pathname.split('/').slice(0, -1).join('/') || '/'
+            };
+            console.log(`  ✅ يمكن الوصول إلى الأصل: ${window.location.origin}`);
+        } catch (error) {
+            this.results.network = {
+                canAccessOrigin: false,
+                error: error.message
+            };
+            console.log(`  ❌ لا يمكن الوصول إلى الأصل: ${error.message}`);
+        }
+    }
+    
+    async checkDirectoryStructure() {
+        console.log('🗂️ التحقق من هيكل الدلائل...');
+        
+        this.results.directory = {
+            currentPath: window.location.pathname,
+            pathParts: window.location.pathname.split('/'),
+            isGitHubPages: window.location.hostname.includes('github.io'),
+            baseDirectory: this.getBaseDirectory()
+        };
+        
+        console.log(`  📍 المسار الحالي: ${this.results.directory.currentPath}`);
+        console.log(`  🏠 المجلد الأساسي: ${this.results.directory.baseDirectory}`);
+        console.log(`  🌐 GitHub Pages: ${this.results.directory.isGitHubPages ? 'نعم' : 'لا'}`);
+    }
+    
+    getBaseDirectory() {
+        const path = window.location.pathname;
+        if (path === '/' || path === '/index.html') return '/';
+        
+        const parts = path.split('/');
+        // إزالة اسم الملف
+        parts.pop();
+        return parts.join('/') || '/';
+    }
+    
+    generateReport() {
+        console.log('\n📋 === تقرير التشخيص ===\n');
+        
+        // المشكلة الرئيسية: الملفات غير موجودة
+        const workingPaths = Object.entries(this.results.paths || {})
+            .filter(([_, data]) => data.exists)
+            .map(([path, _]) => path);
+        
+        if (workingPaths.length === 0) {
+            console.log('🚨 المشكلة الرئيسية: ملفات البيانات غير موجودة في أي مسار');
+            console.log('💡 الحلول الممكنة:');
+            console.log('   1. تأكد من وجود مجلد data/ في المكان الصحيح');
+            console.log('   2. تحقق من أسماء الملفات (activity_vectors_v5.json، إلخ)');
+            console.log('   3. تأكد من صلاحيات الوصول للملفات');
+            console.log('   4. استخدم البيانات من المتغيرات العالمية بدلاً من الملفات');
+        } else {
+            console.log(`✅ المسارات العاملة: ${workingPaths.join(', ')}`);
+        }
+        
+        // اقتراح بناءً على المتغيرات المتاحة
+        if (this.results.variables?.activityVectors?.exists && 
+            this.results.variables.activityVectors.length > 0) {
+            console.log('\n💡 الحل الفوري:');
+            console.log('   استخدم البيانات من window.activityVectors بدلاً من تحميل الملفات');
+            
+            // إظهار نموذج كود
+            console.log('\n📝 كود الإصلاح:');
+            console.log(`
+// في vector_engine.js، استبدل loadDataFromJSON بـ:
+async loadDataFromJSON() {
+    if (window.activityVectors && window.activityVectors.length > 0) {
+        console.log('✅ استخدام البيانات من الذاكرة...');
+        for (const item of window.activityVectors) {
+            await this.knowledgeBase.activities.addItem(item);
+        }
+        for (const item of window.industrialVectors || []) {
+            await this.knowledgeBase.industrial.addItem(item);
+        }
+        for (const item of window.decision104Vectors || []) {
+            await this.knowledgeBase.decision104.addItem(item);
+        }
+        return;
+    }
+    // ... باقي الكود للبيانات المدمجة
+}
+            `);
+        }
+        
+        console.log('\n🔧 التوصيات:');
+        console.log('   1. عطل fetch للملفات وأستخدم البيانات المدمجة');
+        console.log('   2. تأكد من نشر ملفات JSON مع المشروع');
+        console.log('   3. استخدم console.log لرؤية المسار الفعلي');
+        
+        // حفظ النتائج للوصول السريع
+        window.systemDiagnosis = this.results;
+    }
+}
+
+// تشغيل التشخيص بعد تحميل الصفحة
+setTimeout(() => {
+    new SystemDiagnostic();
+}, 2000);
