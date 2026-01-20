@@ -45,17 +45,29 @@ class VectorEngine {
                 const json = await response.json();
                 let vectorArray = [];
 
-                // 🔥 الإصلاح الجوهري: استخراج البيانات من الهيكل الجديد
-                if (json.data && Array.isArray(json.data)) {
-                    vectorArray = json.data.map(item => ({
-                        id: item.id,
-                        // الوصول لمتجهات 'primary' داخل كائن 'vectors'
-                        vector: item.vectors ? item.vectors.primary : null 
-                    })).filter(item => item.vector !== null);
-                } else if (json.vectors) {
-                    // دعم الصيغة القديمة في حال وجودها
-                    vectorArray = json.vectors;
-                }
+                // 🔥 الإصلاح الشامل: يدعم جميع الهياكل
+if (json.data && Array.isArray(json.data)) {
+    vectorArray = json.data.map(item => {
+        let vector = null;
+        
+        // 1. أولاً: الهيكل الجديد (vectors.primary)
+        if (item.vectors && item.vectors.primary) {
+            vector = item.vectors.primary;
+        }
+        // 2. ثانياً: الهيكل المباشر (vector) - هذا ما تحتاجه ملفاتك
+        else if (item.vector) {
+            vector = item.vector;
+        }
+        // 3. ثالثاً: دعم الهياكل الأخرى
+        else if (item.embedding) {
+            vector = item.embedding;
+        }
+        
+        return vector ? { id: item.id, vector } : null;
+    }).filter(item => item !== null && item.vector !== null);
+    
+    console.log(`✅ قاعدة [${key}]: تم استخراج ${vectorArray.length} متجهة (الهيكل: ${vectorArray.length > 0 ? 'مباشر' : 'فارغ'})`);
+}
 
                 this.databases[key].vectors = vectorArray;
                 console.log(`📦 قاعدة [${key}]: تم استخراج ${vectorArray.length} متجهة بنجاح.`);
@@ -131,3 +143,4 @@ class VectorEngine {
 
 // تصدير النسخة للمجال العام لضمان عمل app.js و neural_search
 window.vEngine = new VectorEngine();
+
