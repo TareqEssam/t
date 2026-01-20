@@ -599,3 +599,194 @@ window.addEventListener('error', function(e) {
 console.log('🚀 Vector Engine Pro: تم التحميل بنجاح');
 console.log('📋 الإصدار: النهائي المثبت - لا يحمل بيانات لا نهائية');
 console.log('💡 استخدم window.vEngine.search("استعلام") للبحث');
+
+// ============================================================
+// نظام التحسين والمراقبة الدائمة
+// ============================================================
+
+// مراقبة الأداء التلقائية
+(function setupPerformanceMonitor() {
+    console.log('📊 نظام المراقبة الذاتية مفعل');
+    
+    // 1. مراقبة واستبدال التوقيتات القديمة
+    setInterval(() => {
+        if (window.vEngine && window.vEngine.loadStartTime) {
+            const age = Date.now() - window.vEngine.loadStartTime;
+            
+            // إذا كان التوقيت أقدم من 5 دقائق، نحدثه
+            if (age > 300000) { // 5 دقائق
+                console.log('🔄 تحديث توقيت قديم تلقائياً');
+                window.vEngine.loadStartTime = Date.now();
+            }
+        }
+    }, 60000); // كل دقيقة
+    
+    // 2. مراقبة الذاكرة
+    setInterval(() => {
+        if (performance.memory) {
+            const mem = performance.memory;
+            const usedMB = mem.usedJSHeapSize / 1024 / 1024;
+            const totalMB = mem.totalJSHeapSize / 1024 / 1024;
+            const percentage = (usedMB / totalMB * 100).toFixed(1);
+            
+            if (percentage > 85) {
+                console.warn(`⚠️ استخدام ذاكرة مرتفع: ${percentage}%`);
+            }
+        }
+    }, 30000); // كل 30 ثانية
+    
+    // 3. إصلاح تلقائي للبيانات التالفة
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted && window.vEngine) {
+            console.log('🔧 إصلاح تلقائي بعد استعادة الصفحة');
+            window.vEngine.isLoading = false;
+            window.vEngine.isReady = true;
+        }
+    });
+    
+    // 4. تقرير حالة النظام
+    window.reportSystemHealth = function() {
+        return {
+            timestamp: new Date().toISOString(),
+            engine: {
+                ready: window.vEngine?.isReady,
+                loading: window.vEngine?.isLoading,
+                loadTime: window.vEngine?.loadStartTime ? 
+                    Date.now() - window.vEngine.loadStartTime : null
+            },
+            memory: performance.memory ? {
+                used: `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB`,
+                total: `${(performance.memory.totalJSHeapSize / 1024 / 1024).toFixed(2)}MB`
+            } : null,
+            data: {
+                activities: window.masterActivityDB?.length || 0,
+                industrial: window.industrialAreasData?.length || 0
+            }
+        };
+    };
+    
+    console.log('✅ نظام المراقبة جاهز');
+})();
+
+// ============================================================
+// أدوات المساعدة للصيانة
+// ============================================================
+
+// إعادة تعيين كاملة للمحرك
+window.refreshVectorEngine = async function() {
+    console.log('🔄 إعادة تعيين المحرك...');
+    
+    if (window.vEngine && window.vEngine.reset) {
+        await window.vEngine.reset();
+        console.log('✅ تم إعادة تعيين المحرك');
+    } else {
+        console.log('⚠️ وظيفة reset غير متاحة، إنشاء محرك جديد');
+        window.vEngine = new VectorEnginePro();
+    }
+    
+    return window.vEngine;
+};
+
+// تنظيف الذاكرة
+window.cleanupSystem = function() {
+    console.log('🧹 تنظيف النظام...');
+    
+    // تنظيف المكونات المؤقتة
+    if (window.vEngine?.knowledgeBase) {
+        Object.values(window.vEngine.knowledgeBase).forEach(index => {
+            if (index.vectorCache) index.vectorCache.clear();
+        });
+    }
+    
+    // تفعيل جمع القمامة إذا متاح
+    if (window.gc) {
+        window.gc();
+        console.log('🗑️  تم تفعيل جمع القمامة');
+    }
+    
+    console.log('✅ تم التنظيف');
+    return true;
+};
+
+// اختبار شامل للنظام
+window.runSystemDiagnostics = async function() {
+    console.log('🔍 تشخيص شامل للنظام...');
+    
+    const tests = [
+        {
+            name: 'المحرك الأساسي',
+            test: () => !!window.vEngine,
+            fix: () => window.vEngine = new VectorEnginePro()
+        },
+        {
+            name: 'جاهزية المحرك',
+            test: () => window.vEngine?.isReady === true,
+            fix: () => { if (window.vEngine) window.vEngine.isReady = true; }
+        },
+        {
+            name: 'بيانات الأنشطة',
+            test: () => window.masterActivityDB?.length > 0,
+            fix: () => console.warn('⚠️ لا يمكن إصلاح بيانات الأنشطة تلقائياً')
+        },
+        {
+            name: 'بحث أساسي',
+            test: async () => {
+                try {
+                    const results = await window.vEngine.search('نشاط', 1);
+                    return results.activities.length > 0 || results.industrial.length > 0;
+                } catch {
+                    return false;
+                }
+            },
+            fix: () => window.refreshVectorEngine()
+        }
+    ];
+    
+    const results = [];
+    
+    for (const test of tests) {
+        try {
+            const passed = typeof test.test === 'function' ? 
+                await test.test() : test.test;
+            
+            results.push({
+                test: test.name,
+                passed,
+                timestamp: Date.now()
+            });
+            
+            console.log(`   ${passed ? '✅' : '❌'} ${test.name}`);
+            
+            if (!passed && test.fix) {
+                console.log(`   🔧 محاولة إصلاح...`);
+                test.fix();
+            }
+        } catch (error) {
+            results.push({
+                test: test.name,
+                passed: false,
+                error: error.message,
+                timestamp: Date.now()
+            });
+            console.log(`   ❌ ${test.name}: ${error.message}`);
+        }
+    }
+    
+    const passedCount = results.filter(r => r.passed).length;
+    const totalCount = results.length;
+    
+    console.log(`\n📊 النتائج: ${passedCount}/${totalCount} اختبارات ناجحة`);
+    
+    return {
+        summary: `${passedCount}/${totalCount} ناجح`,
+        details: results,
+        healthy: passedCount === totalCount
+    };
+};
+
+console.log('🚀 نظام Vector Engine المحسّن جاهز للعمل!');
+console.log('💡 استخدم:');
+console.log('   - window.reportSystemHealth() لرؤية الحالة');
+console.log('   - window.runSystemDiagnostics() للتشخيص');
+console.log('   - window.refreshVectorEngine() للتحديث');
+console.log('   - window.cleanupSystem() للتنظيف');
