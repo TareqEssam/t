@@ -131,3 +131,4 @@ class VectorEngine {
 
 // تصدير النسخة للمجال العام لضمان عمل app.js و neural_search
 window.vEngine = new VectorEngine();
+
