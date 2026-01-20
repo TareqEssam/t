@@ -953,13 +953,29 @@ ${sectorDetails}
      * ═══════════════════════════════════════════════════════════════
      */
     createResponse(text, type, confidence, data = {}) {
-        return {
+        const response = {
             text,
             type,
             confidence,
             timestamp: Date.now(),
             ...data
         };
+        
+        // إصلاح هيكلة البيانات للتوافق مع response_formatter.js
+        if (type === 'activity_full' && data.data) {
+            response.activity = data.data;
+            response.decision104 = null; // سيتم ملؤها لاحقاً إن وجدت
+            response.hasMultiple = false;
+            response.alternatives = [];
+        }
+        
+        if (type === 'area_full' && data.area) {
+            response.area = data.area;
+            response.hasMultiple = false;
+            response.alternatives = [];
+        }
+        
+        return response;
     }
     
     /**
