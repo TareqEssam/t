@@ -568,3 +568,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 console.log('✅ assistant_ui.js تم التحميل بنجاح');
+// ==================== إصلاح التوافقية ====================
+// هذا يضمن عمل النظام حتى لو كان AssistantAI غير محدد
+
+// دالة مساعدة للتحقق من توفر الأنظمة
+function getAvailableAssistant() {
+    if (typeof AssistantAI !== 'undefined') {
+        console.log('✅ استخدام AssistantAI (النظام القديم)');
+        return new AssistantAI();
+    } else if (window.smartAssistant) {
+        console.log('✅ استخدام smartAssistant (النظام الجديد)');
+        return window.smartAssistant;
+    } else if (window.assistant) {
+        console.log('✅ استخدام window.assistant (النظام التوافقي)');
+        return window.assistant;
+    } else {
+        console.warn('⚠️ لم يتم العثور على أي نظام مساعد');
+        return null;
+    }
+}
+
+// تعديل التهيئة في assistant_ui.js
+// ابحث عن هذا الجزء (حوالي السطر 35-45):
+// this.ai = new AssistantAI();
+
+// واستبدله بـ:
+this.ai = getAvailableAssistant();
+
+if (!this.ai) {
+    console.error('❌ فشل في تهيئة نظام المساعدة');
+    // استمرار بدون نظام AI
+}
