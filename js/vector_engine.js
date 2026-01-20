@@ -1,8 +1,3 @@
-/****************************************************************************
- * 🧠 Vector Engine - محرك البحث الدلالي السحابي (نسخة الإصلاح النهائي)
- * يتوافق مع هيكلية بيانات v5-lean (data -> vectors -> primary)
- ****************************************************************************/
-
 import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
 // إعدادات البيئة للعمل سحابياً 100%
@@ -45,29 +40,27 @@ class VectorEngine {
                 const json = await response.json();
                 let vectorArray = [];
 
-                // 🔥 الإصلاح الشامل: يدعم جميع الهياكل
-if (json.data && Array.isArray(json.data)) {
-    vectorArray = json.data.map(item => {
-        let vector = null;
-        
-        // 1. أولاً: الهيكل الجديد (vectors.primary)
-        if (item.vectors && item.vectors.primary) {
-            vector = item.vectors.primary;
-        }
-        // 2. ثانياً: الهيكل المباشر (vector) - هذا ما تحتاجه ملفاتك
-        else if (item.vector) {
-            vector = item.vector;
-        }
-        // 3. ثالثاً: دعم الهياكل الأخرى
-        else if (item.embedding) {
-            vector = item.embedding;
-        }
-        
-        return vector ? { id: item.id, vector } : null;
-    }).filter(item => item !== null && item.vector !== null);
-    
-    console.log(`✅ قاعدة [${key}]: تم استخراج ${vectorArray.length} متجهة (الهيكل: ${vectorArray.length > 0 ? 'مباشر' : 'فارغ'})`);
-}
+                // 🔥 الإصلاح النهائي: يدعم جميع الهياكل (vectors.primary, vector مباشر، embedding)
+                if (json.data && Array.isArray(json.data)) {
+                    vectorArray = json.data.map(item => {
+                        // 1. أولاً: الهيكل الجديد (vectors.primary) - لـ activities
+                        if (item.vectors && item.vectors.primary) {
+                            return { id: item.id, vector: item.vectors.primary };
+                        }
+                        // 2. ثانياً: الهيكل المباشر (vector) - لـ industrial و decision104
+                        else if (item.vector && Array.isArray(item.vector)) {
+                            return { id: item.id, vector: item.vector };
+                        }
+                        // 3. ثالثاً: دعم الهياكل الأخرى
+                        else if (item.embedding) {
+                            return { id: item.id, vector: item.embedding };
+                        }
+                        return null;
+                    }).filter(item => item !== null && item.vector !== null);
+                } else if (json.vectors) {
+                    // دعم الصيغة القديمة في حال وجودها
+                    vectorArray = json.vectors;
+                }
 
                 this.databases[key].vectors = vectorArray;
                 console.log(`📦 قاعدة [${key}]: تم استخراج ${vectorArray.length} متجهة بنجاح.`);
@@ -143,4 +136,3 @@ if (json.data && Array.isArray(json.data)) {
 
 // تصدير النسخة للمجال العام لضمان عمل app.js و neural_search
 window.vEngine = new VectorEngine();
-
