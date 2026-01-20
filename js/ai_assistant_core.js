@@ -1,570 +1,225 @@
 /****************************************************************************
- * 🎨 Assistant UI - الواجهة التفاعلية الكاملة
- * أيقونة عائمة + نافذة محادثة احترافية
- * 
- * القدرات:
- * 💬 محادثة صوتية ونصية
- * 📱 متجاوبة (موبايل + كمبيوتر)
- * ✨ تأثيرات حية
- * 🎭 رسوم متحركة سلسة
+ * 🧠 AI Assistant Core - النسخة الاحترافية الشاملة (V8.0)
+ * - الربط العلمي الدقيق بين نتائج البحث الدلالي وقاعدة البيانات التفصيلية.
+ * - حل مشكلة البيانات "غير المحددة" عبر مطابقة الاسم والمعرف.
+ * - الفصل التام: المساعد مستشار معلوماتي فقط ولا يتدخل في مدخلات النظام.
  ****************************************************************************/
 
-class AssistantUI {
+class AssistantAI {
     constructor() {
-        // المكونات الأساسية
-        this.ai = null;
-        this.voice = null;
-        this.formatter = null;
+        // ذاكرة المحادثة القصيرة لتذكر سياق الأسئلة التابعة
+        this.conversationMemory = [];
+        this.maxMemory = 5;
         
-        // عناصر DOM
-        this.elements = {};
+        // السياق الحالي لتخزين آخر كيان تم البحث عنه (نشاط أو منطقة)
+        this.currentContext = {
+            lastEntity: null,
+            lastTopic: null,
+            timestamp: null
+        };
         
-        // الحالة
-        this.isOpen = false;
-        this.isMinimized = false;
-        this.currentMode = 'text'; // 'text' | 'voice'
-        
-        // إعدادات
-        this.settings = {
-            position: { bottom: 20, right: 20 },
-            maxMessages: 50,
-            autoScroll: true,
-            soundEffects: true
+        // إحصائيات الأداء لمراقبة دقة البحث
+        this.stats = {
+            totalQueries: 0,
+            successfulMatches: 0
         };
         
         this.initialize();
     }
     
-    // ==================== التهيئة المحدثة (Async) ====================
-    async initialize() {
-        try {
-            // 1. إنشاء عناصر الواجهة (DOM)
-            this.createUI();
-            
-            // 2. ربط المكونات
-            this.ai = window.assistant || new AssistantAI();
-            this.formatter = new ResponseFormatter();
-            
-            // 3. تهيئة معالج الصوت
-            this.voice = new VoiceHandler(
-                (transcript, confidence) => this.handleVoiceResult(transcript, confidence),
-                (error) => this.handleVoiceError(error)
-            );
-            
-            // 4. ربط أحداث الأزرار والإدخال
-            this.bindEvents();
-            
-            // 5. رسالة ترحيب
-            this.showWelcomeMessage();
-            
-            console.log('✅ واجهة المساعد مرتبطة بمحرك المتجهات وجاهزة');
-            
-        } catch (error) {
-            console.error('❌ فشل تهيئة الواجهة:', error);
-        }
-    }
-    
-    // ==================== إنشاء عناصر الواجهة ====================
-    createUI() {
-        // الأيقونة العائمة
-        const fab = document.createElement('div');
-        fab.id = 'assistant-fab';
-        fab.className = 'assistant-fab';
-        fab.innerHTML = `
-            <div class="fab-icon">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                </svg>
-            </div>
-            <div class="fab-pulse"></div>
-        `;
-        document.body.appendChild(fab);
-        this.elements.fab = fab;
-        
-        // نافذة المحادثة
-        const chatWindow = document.createElement('div');
-        chatWindow.id = 'assistant-window';
-        chatWindow.className = 'assistant-window';
-        chatWindow.innerHTML = this.createWindowHTML();
-        document.body.appendChild(chatWindow);
-        this.elements.window = chatWindow;
-        
-        // تخزين المراجع
-        this.elements.header = chatWindow.querySelector('.chat-header');
-        this.elements.messagesContainer = chatWindow.querySelector('.messages-container');
-        this.elements.inputArea = chatWindow.querySelector('.input-area');
-        this.elements.textInput = chatWindow.querySelector('#chat-input');
-        this.elements.sendBtn = chatWindow.querySelector('#send-btn');
-        this.elements.voiceBtn = chatWindow.querySelector('#voice-btn');
-        this.elements.closeBtn = chatWindow.querySelector('#close-btn');
-        this.elements.minimizeBtn = chatWindow.querySelector('#minimize-btn');
-        this.elements.muteBtn = chatWindow.querySelector('#mute-btn');
-        this.elements.statusBar = chatWindow.querySelector('.status-bar');
-        this.elements.thinkingIndicator = chatWindow.querySelector('.thinking-indicator');
-        this.elements.typingIndicator = chatWindow.querySelector('.thinking-indicator');
-    }
-    
-    // ==================== HTML نافذة المحادثة ====================
-    createWindowHTML() {
-        return `
-            <div class="chat-header">
-                <div class="header-left">
-                    <div class="assistant-avatar">🤖</div>
-                    <div class="header-info">
-                        <div class="assistant-name">المساعد الذكي</div>
-                        <div class="assistant-status">جاهز للمساعدة</div>
-                    </div>
-                </div>
-                <div class="header-right">
-                    <button id="mute-btn" class="header-btn" title="كتم الصوت">
-                        <span class="btn-icon">🔊</span>
-                    </button>
-                    <button id="minimize-btn" class="header-btn" title="تصغير">
-                        <span class="btn-icon">−</span>
-                    </button>
-                    <button id="close-btn" class="header-btn" title="إغلاق">
-                        <span class="btn-icon">×</span>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="status-bar">
-                <div class="status-text">متصل</div>
-                <div class="status-indicator online"></div>
-            </div>
-            
-            <div class="messages-container" id="messages">
-                <!-- الرسائل تُضاف هنا ديناميكياً -->
-            </div>
-            
-            <div class="thinking-indicator" style="display: none;">
-                <div class="thinking-dots">
-                    <span></span><span></span><span></span>
-                </div>
-                <span>جاري التفكير...</span>
-            </div>
-            
-            <div class="input-area">
-                <div class="input-container">
-                    <input 
-                        type="text" 
-                        id="chat-input" 
-                        placeholder="اكتب سؤالك هنا... أو اضغط على المايك 🎤"
-                        autocomplete="off"
-                    />
-                    <button id="voice-btn" class="icon-btn" title="التحدث">
-                        <span class="btn-icon">🎤</span>
-                    </button>
-                    <button id="send-btn" class="icon-btn send-btn" title="إرسال">
-                        <span class="btn-icon">➤</span>
-                    </button>
-                </div>
-                <div class="voice-feedback" style="display: none;">
-                    <div class="voice-wave">
-                        <span></span><span></span><span></span><span></span><span></span>
-                    </div>
-                    <span class="voice-text">استمع...</span>
-                </div>
-            </div>
-        `;
-    }
-    
-    // ==================== ربط الأحداث ====================
-    bindEvents() {
-        // فتح/إغلاق النافذة
-        this.elements.fab.addEventListener('click', () => this.toggleWindow());
-        this.elements.closeBtn.addEventListener('click', () => this.closeWindow());
-        this.elements.minimizeBtn.addEventListener('click', () => this.minimizeWindow());
-        
-        // إرسال رسالة
-        this.elements.sendBtn.addEventListener('click', () => this.sendTextMessage());
-        this.elements.textInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendTextMessage();
-            }
+    /**
+     * تهيئة المساعد والتأكد من الاتصال بمحرك المتجهات
+     */
+    initialize() {
+        window.addEventListener('vectorEngineReady', () => {
+            console.log('✅ المساعد الذكي ارتبط بمحرك المتجهات بنجاح');
         });
-        
-        // التحكم بالصوت
-        this.elements.voiceBtn.addEventListener('click', () => this.toggleVoiceMode());
-        this.elements.muteBtn.addEventListener('click', () => this.toggleMute());
-        
-        // أحداث الصوت المحدثة
-        this.voice.on('listeningStart', () => this.onListeningStart());
-        this.voice.on('listeningEnd', () => this.onListeningEnd());
-        this.voice.on('speakingStart', () => this.onSpeakingStart());
-        this.voice.on('speakingEnd', () => this.onSpeakingEnd());
-        this.voice.on('interimResult', (data) => this.onInterimResult(data));
-
-        // === التعديل: استخدام الدالة المركزية processQuery ===
-        this.voice.on('result', async (data) => {
-            if (data.isFinal) {
-                console.log('🎤 تم استقبال نص نهائي من الصوت:', data.text);
-                this.addMessage(data.text, 'user');
-                await this.processQuery(data.text); // استدعاء الدالة المركزية
-            }
-        });
-        
-        // جعل النافذة قابلة للسحب
-        this.makeDraggable();
     }
-    
-    // ==================== فتح/إغلاق النافذة ====================
-    toggleWindow() {
-        if (this.isOpen) {
-            this.closeWindow();
-        } else {
-            this.openWindow();
+
+    /**
+     * تحديد ما إذا كان السؤال الحالي هو سؤال تابع لما قبله (Contextual Query)
+     */
+    isFollowUpQuery(text) {
+        const followUpWords = ['هناك', 'فيها', 'دي', 'المكان ده', 'الحوافز', 'الشروط', 'النشاط ده', 'عايز افتح', 'كيف', 'ما هي'];
+        return followUpWords.some(word => text.includes(word));
+    }
+
+    /**
+     * تحديث الذاكرة والسياق لضمان استمرارية الفهم
+     */
+    updateMemory(query, response, entity = null) {
+        this.conversationMemory.push({ query, response, timestamp: Date.now() });
+        if (this.conversationMemory.length > this.maxMemory) {
+            this.conversationMemory.shift();
+        }
+        
+        if (entity) {
+            this.currentContext.lastEntity = entity;
+            this.currentContext.timestamp = Date.now();
         }
     }
-    
-    openWindow() {
-        this.elements.window.classList.add('open');
-        this.elements.fab.classList.add('hidden');
-        this.isOpen = true;
-        this.isMinimized = false;
-        
-        // تركيز على حقل الإدخال
-        setTimeout(() => this.elements.textInput.focus(), 300);
-    }
-    
-    closeWindow() {
-        this.elements.window.classList.remove('open');
-        this.elements.fab.classList.remove('hidden');
-        this.isOpen = false;
-        
-        // إيقاف الصوت
-        if (this.voice.isListening) this.voice.stopListening();
-        if (this.voice.isSpeaking) this.voice.stopSpeaking();
-    }
-    
-    minimizeWindow() {
-        this.isMinimized = !this.isMinimized;
-        this.elements.window.classList.toggle('minimized', this.isMinimized);
-    }
-    
-    // ==================== إرسال رسالة نصية ====================
-    async sendTextMessage() {
-        const text = this.elements.textInput.value.trim();
-        if (!text) return;
 
-        // === التعديل: استخدام الدالة المركزية processQuery ===
-        this.addMessage(text, 'user');
-        this.elements.textInput.value = '';
-        await this.processQuery(text);
-    }
-    
-    // ==================== معالجة السؤال (الدالة المركزية) ====================
-    async processQuery(query) {
-        // إظهار مؤشر التفكير
-        this.showThinking(true);
+    /**
+     * الوظيفة الرئيسية لاستقبال ومعالجة استعلامات المستخدم
+     */
+    async getResponse(query) {
+        this.stats.totalQueries++;
+        const normalized = query.trim();
         
+        // التعامل مع أوامر النظام المباشرة
+        if (normalized === 'help' || normalized === 'مساعدة') {
+            return this.handleCommand('help');
+        }
+
+        // بناء استعلام البحث مع مراعاة السياق السابق
+        let searchQuery = normalized;
+        if (this.isFollowUpQuery(normalized) && this.currentContext.lastEntity) {
+            searchQuery = `${this.currentContext.lastEntity} ${normalized}`;
+            console.log(`🔍 دمج السياق: البحث عن [${searchQuery}]`);
+        }
+
+        return await this.handleComplexQuery(searchQuery);
+    }
+
+    /**
+     * معالجة الاستعلامات المعقدة باستخدام البحث الدلالي والربط مع قاعدة البيانات
+     */
+    async handleComplexQuery(text) {
         try {
-            // معالجة بالذكاء الاصطناعي
-            const response = await this.ai.getResponse(query);
-            
-            // إخفاء المؤشر
-            this.showThinking(false);
-            
-            // التعامل مع الأوامر الخاصة
-            if (response.type === 'command' && response.action === 'close') {
-                this.voice.speak(response.text, () => {
-                    setTimeout(() => this.closeWindow(), 1000);
-                });
-                return;
+            if (!window.vEngine) {
+                throw new Error("Vector Engine is not ready yet.");
             }
-            
-            // تنسيق الرد
-            const formattedHTML = this.formatter.formatResponse(response);
-            
-            // عرض الرد
-            this.addMessage(formattedHTML, 'assistant');
-            
-            // نطق الرد (إذا كان في وضع الصوت)
-            if (this.currentMode === 'voice' && response.text) {
-                const speechText = this.extractSpeechText(response);
-                this.voice.speak(speechText);
-            } else if (!this.voice.isMuted && response.text) {
-                // نطق الرد حتى في وضع النص إذا لم يكن الصوت مكتوماً
-                this.voice.speak(response.text);
-            }
-            
-        } catch (error) {
-            console.error('❌ خطأ في معالجة السؤال:', error);
-            this.showThinking(false);
-            
-            const errorHTML = this.formatter.createErrorCard('عذراً، حدث خطأ. يمكنك المحاولة مرة أخرى؟');
-            this.addMessage(errorHTML, 'assistant');
-        }
-    }
-    
-    // ==================== استخراج نص للنطق ====================
-    extractSpeechText(response) {
-        switch (response.type) {
-            case 'activity_full':
-                return `وجدت نشاط ${response.activity.text}. يمكنك سؤالي عن التراخيص أو الجهات المختصة.`;
-            
-            case 'area_full':
-                return `وجدت منطقة ${response.area.name} في ${response.area.governorate}.`;
-            
-            case 'no_results':
-                return response.text + (response.suggestion ? `. هل تقصد ${response.suggestion.text}؟` : '');
-            
-            case 'help':
-                return response.text;
-            
-            default:
-                return response.text || 'تم العثور على معلومات. يمكنك قراءتها على الشاشة.';
-        }
-    }
-    
-    // ==================== إضافة رسالة ====================
-    addMessage(content, sender = 'assistant') {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message message-${sender}`;
-        
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble';
 
-        // معالجة المحتوى بناءً على نوعه
-        if (typeof content === 'object' && content !== null) {
-            // حالة الرد الذكي (كائن يحتوي على نص و HTML)
-            bubble.innerHTML = content.text || ""; 
+            // تنفيذ البحث الدلالي عبر محرك المتجهات
+            const results = await window.vEngine.search(text);
             
-            if (content.html) {
-                const extraContent = document.createElement('div');
-                extraContent.innerHTML = content.html;
-                bubble.appendChild(extraContent);
+            // تحديد نية المستخدم (Intent Detection)
+            const isActivityQuery = /انشاء|تشغيل|مصنع|نشاط|فندق|ورشة|صناعة|تراخيص/.test(text);
+
+            // استخراج أفضل النتائج المطابقة
+            let topActivity = (results.activities && results.activities.length > 0) ? results.activities[0] : null;
+            const topArea = (results.industrial && results.industrial.length > 0) ? results.industrial[0] : null;
+
+            // هيكل الرد الافتراضي
+            const response = {
+                type: "multi_match",
+                text: "",
+                activities: results.activities || [],
+                areas: results.industrial || [],
+                decision104: results.decision104 || [],
+                confidence: 0
+            };
+
+            // دوال استخراج الأسماء
+            const getActivityName = (act) => act.id || act.text || act.name || "نشاط";
+            const getAreaName = (area) => area.id || area.name || area.text || "منطقة صناعية";
+
+            // منطق اتخاذ القرار وعرض النتائج
+            if (isActivityQuery && topActivity) {
+                const name = getActivityName(topActivity);
+                response.text = `بناءً على طلبك بخصوص "${name}"، إليك البيانات المتاحة من واقع الدليل الصناعي:`;
+                response.confidence = topActivity.score;
+                // تصفية النتائج غير ذات الصلة إذا كانت الثقة عالية
+                response.areas = (topActivity.score > 0.5) ? [] : response.areas;
+                this.updateMemory(text, response.text, name);
+            } 
+            else if (topActivity && topActivity.score > 0.6) {
+                const name = getActivityName(topActivity);
+                response.text = `إليك تفاصيل نشاط "${name}" الذي وجدته:`;
+                response.confidence = topActivity.score;
+                this.updateMemory(text, response.text, name);
             }
-        } else {
-            // حالة النص العادي (رسالة المستخدم أو نصوص بسيطة)
-            if (sender === 'user') {
-                bubble.textContent = content; // حماية لرسائل المستخدم
+            else if (topArea) {
+                const name = getAreaName(topArea);
+                const cleanName = name.split('(')[0].replace('المنطقة الصناعية', '').trim();
+                response.text = `لقد وجدت معلومات متعلقة بالمنطقة الصناعية "${cleanName}":`;
+                response.confidence = topArea.score || 0.8;
+                this.updateMemory(text, response.text, name);
+            } 
+            else {
+                response.text = "عذراً، لم أجد نتائج مطابقة تماماً لطلبك. هل يمكنك تحديد النشاط أو المنطقة الصناعية بشكل أوضح؟";
+                response.confidence = 0.2;
+            }
+
+            return response;
+
+        } catch (error) {
+            console.error("Vector Core Error:", error);
+            return { text: "عذراً، واجهت مشكلة في معالجة البيانات الدلالية.", type: "error" };
+        }
+    }
+
+    /**
+     * التعامل مع الأوامر النصية البسيطة
+     */
+    handleCommand(command) {
+        if (command === 'help') {
+            return {
+                type: 'help',
+                text: 'أنا مساعدك الذكي للخدمات الصناعية. يمكنك سؤالي عن الأنشطة (مثل: مصنع فوم)، المناطق الصناعية، أو حوافز قرار 104.',
+                confidence: 1
+            };
+        }
+    }
+
+    // =========================================================
+    // 🛡️ مهارة عرض تفاصيل الترخيص (الربط المباشر وقراءة البيانات)
+    // =========================================================
+    showLicenseDetails(activityId) {
+        console.log("🔍 جلب البيانات الموثقة للمعرف:", activityId);
+        
+        // التحقق من وجود قاعدة البيانات التفصيلية في الذاكرة
+        if (typeof masterActivityDB !== 'undefined') {
+            
+            // 1. محاولة البحث عن النشاط بالمعرف (ID)
+            let data = masterActivityDB.find(item => item.value === activityId);
+            
+            // 2. إذا فشل البحث بالمعرف، نحاول البحث باسم الكيان من سياق المحادثة
+            if (!data && this.currentContext.lastEntity) {
+                data = masterActivityDB.find(item => 
+                    item.text === this.currentContext.lastEntity || 
+                    item.text.includes(this.currentContext.lastEntity)
+                );
+            }
+            
+            // 3. إذا وجدت البيانات، نقوم بصياغة تقرير معلوماتي للفريق
+            if (data && data.details) {
+                const d = data.details;
+                const infoText = `
+📑 **تقرير البيانات الرسمية للنشاط:**
+-----------------------------------
+🏢 **النشاط المعتمد:** ${data.text}
+🏛️ **جهة الاختصاص:** ${d.auth || 'غير محددة في الدليل'}
+🔧 **طبيعة العمل:** ${d.act || 'نشاط صناعي/خدمي'}
+⚖️ **التشريع المنظم:** ${d.leg || 'خاضع للقوانين العامة لعام 2017'}
+📝 **أهم الاشتراطات:** ${d.req || 'يرجى مراجعة دليل اشتراطات الحماية المدنية والبيئة'}
+-----------------------------------
+💡 *هذا البيان للعرض المعلوماتي فقط ولا يؤثر على طلبات التسجيل الحالية.*
+                `;
+
+                // إرسال النص لواجهة المستخدم (صندوق الدردشة فقط)
+                if (window.assistantUI) {
+                    if (typeof window.assistantUI.receiveMessage === 'function') {
+                        window.assistantUI.receiveMessage(infoText);
+                    } else if (typeof window.assistantUI.addMessage === 'function') {
+                        window.assistantUI.addMessage({ text: infoText, isBot: true });
+                    } else {
+                        // حل احتياطي في حال عدم التعرف على وظائف الواجهة
+                        console.log("%c" + infoText, "color: blue; font-size: 14px;");
+                        alert(infoText); 
+                    }
+                }
             } else {
-                bubble.innerHTML = content; // السماح بالتنسيق لرسائل النظام
-            }
-        }
-
-        // إضافة الوقت
-        const time = document.createElement('div');
-        time.className = 'message-time';
-        time.textContent = new Date().toLocaleTimeString('ar-EG', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-        
-        bubble.appendChild(time);
-        messageDiv.appendChild(bubble);
-        this.elements.messagesContainer.appendChild(messageDiv);
-        
-        // تمرير تلقائي للأسفل
-        this.scrollToBottom();
-    }
-
-    // ==================== رسالة الترحيب ====================
-    showWelcomeMessage() {
-        const welcomeHTML = `
-            <div class="welcome-card">
-                <div class="welcome-icon">👋</div>
-                <div class="welcome-title">أهلاً بك!</div>
-                <div class="welcome-text">
-                    أنا المساعد الذكي لفريق اللجان. يمكنني مساعدتك في:
-                </div>
-                <div class="welcome-features">
-                    <div class="feature-item">✓ معلومات الأنشطة والتراخيص</div>
-                    <div class="feature-item">✓ المناطق الصناعية</div>
-                    <div class="feature-item">✓ حوافز قرار 104</div>
-                </div>
-                <div class="welcome-actions">
-                    <button onclick="window.assistantUI.sendMessage('مساعدة')">
-                        💡 كيف أستخدمك؟
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        this.addMessage(welcomeHTML, 'assistant');
-    }
-    
-    // ==================== وضع الصوت ====================
-    toggleVoiceMode() {
-        if (this.voice.isListening) {
-            this.voice.stopListening();
-            this.currentMode = 'text';
-        } else {
-            this.voice.startListening();
-            this.currentMode = 'voice';
-        }
-    }
-    
-    // ==================== أحداث الصوت ====================
-    handleVoiceResult(transcript, confidence) {
-        // عرض ما قاله المستخدم
-        this.addMessage(transcript, 'user');
-        
-        // معالجة السؤال
-        this.processQuery(transcript);
-    }
-    
-    handleVoiceError(error) {
-        this.updateStatus('خطأ في المايكروفون', 'error');
-        setTimeout(() => this.updateStatus('متصل', 'online'), 3000);
-    }
-    
-    onListeningStart() {
-        this.elements.voiceBtn.classList.add('listening');
-        this.elements.inputArea.querySelector('.voice-feedback').style.display = 'flex';
-        this.updateStatus('استمع...', 'listening');
-    }
-    
-    onListeningEnd() {
-        this.elements.voiceBtn.classList.remove('listening');
-        this.elements.inputArea.querySelector('.voice-feedback').style.display = 'none';
-        this.updateStatus('متصل', 'online');
-    }
-    
-    onSpeakingStart() {
-        this.updateStatus('أتحدث...', 'speaking');
-    }
-    
-    onSpeakingEnd() {
-        this.updateStatus('متصل', 'online');
-    }
-    
-    onInterimResult(data) {
-        // عرض نص مؤقت أثناء الحديث
-        const feedbackEl = this.elements.inputArea.querySelector('.voice-text');
-        if (feedbackEl) {
-            feedbackEl.textContent = data.transcript || 'استمع...';
-        }
-    }
-    
-    // ==================== كتم الصوت ====================
-    toggleMute() {
-        const isMuted = this.voice.toggleMute();
-        
-        this.elements.muteBtn.querySelector('.btn-icon').textContent = isMuted ? '🔇' : '🔊';
-        this.elements.muteBtn.title = isMuted ? 'تشغيل الصوت' : 'كتم الصوت';
-    }
-    
-    // ==================== مؤشر التفكير ====================
-    showThinking(show) {
-        this.elements.thinkingIndicator.style.display = show ? 'flex' : 'none';
-        
-        if (show) {
-            this.scrollToBottom();
-        }
-    }
-    
-    // ==================== تحديث الحالة ====================
-    updateStatus(text, type = 'online') {
-        const statusEl = this.elements.statusBar.querySelector('.status-text');
-        const indicatorEl = this.elements.statusBar.querySelector('.status-indicator');
-        
-        statusEl.textContent = text;
-        indicatorEl.className = `status-indicator ${type}`;
-    }
-    
-    // ==================== تمرير للأسفل ====================
-    scrollToBottom() {
-        setTimeout(() => {
-            this.elements.messagesContainer.scrollTop = 
-                this.elements.messagesContainer.scrollHeight;
-        }, 100);
-    }
-    
-    // ==================== جعل النافذة قابلة للسحب ====================
-    makeDraggable() {
-        let isDragging = false;
-        let initialX, initialY;
-
-        const drag = (e) => {
-            if (!isDragging) return;
-            
-            e.preventDefault();
-            const currentX = e.clientX - initialX;
-            const currentY = e.clientY - initialY;
-            
-            this.elements.window.style.left = `${currentX}px`;
-            this.elements.window.style.top = `${currentY}px`;
-            this.elements.window.style.right = 'auto';
-            this.elements.window.style.bottom = 'auto';
-        };
-
-        const startDrag = (e) => {
-            if (e.target.closest('button')) return;
-            
-            isDragging = true;
-            initialX = e.clientX - this.elements.window.offsetLeft;
-            initialY = e.clientY - this.elements.window.offsetTop;
-            
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', stopDrag);
-        };
-
-        const stopDrag = () => {
-            isDragging = false;
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('mouseup', stopDrag);
-        };
-
-        this.elements.header.addEventListener('mousedown', startDrag);
-    }
-    
-    // ==================== واجهة عامة للاستخدام الخارجي ====================
-    sendMessage(text) {
-        if (!this.isOpen) {
-            this.openWindow();
-        }
-        
-        setTimeout(() => {
-            this.elements.textInput.value = text;
-            this.sendTextMessage();
-        }, 100);
-    }
-    
-    selectActivity(activityText) {
-        this.sendMessage(activityText);
-    }
-
-    // إظهار مؤشر الكتابة (النقاط المتحركة)
-    showTypingIndicator() {
-        if (this.elements.typingIndicator) {
-            this.elements.typingIndicator.style.display = 'flex';
-            this.scrollToBottom();
-        }
-    }
-
-    // إخفاء مؤشر الكتابة
-    hideTypingIndicator() {
-        if (this.elements.typingIndicator) {
-            this.elements.typingIndicator.style.display = 'none';
-        }
-    }
-
-    // دالة لاستقبال طلبات التحديث من الكروت المقترحة
-    handleActivityClick(activityValue) {
-        console.log("🎯 تم اختيار نشاط من المقترحات:", activityValue);
-        if (typeof updateActivityDetails === 'function') {
-            updateActivityDetails(activityValue);
-            
-            // تصغير النافذة في الموبايل لرؤية النتيجة خلف المساعد
-            if (window.innerWidth < 768 && typeof this.minimizeWindow === 'function') {
-                this.minimizeWindow(); 
+                console.warn("⚠️ لم نتمكن من العثور على مصفوفة Details لهذا النشاط في masterActivityDB.");
+                if (window.assistantUI && window.assistantUI.receiveMessage) {
+                    window.assistantUI.receiveMessage("عذراً، البيانات التفصيلية لهذا النشاط غير مدرجة حالياً في قاعدة البيانات الرسمية.");
+                }
             }
         } else {
-            console.warn("⚠️ دالة updateActivityDetails غير موجودة في main_logic.js");
+            console.error("❌ خطأ: قاعدة البيانات masterActivityDB غير محملة.");
         }
     }
 }
 
-
-
-// ==================== التهيئة التلقائية ====================
-document.addEventListener('DOMContentLoaded', () => {
-    window.assistantUI = new AssistantUI();
-    console.log('✅ تم تهيئة واجهة المساعد');
-});
-
-
-console.log('✅ assistant_ui.js تم التحميل بنجاح');
+// إنشاء نسخة عالمية واحدة من المساعد
+window.assistant = new AssistantAI();
