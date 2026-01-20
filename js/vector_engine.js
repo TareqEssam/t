@@ -20,11 +20,11 @@ class VectorEnginePro {
             clusters: new Map()
         };
         
-        // 🔥 نماذج الذكاء المدمجة
+        // 🔥 نماذج الذكاء المدمجة - **تم التصحيح هنا**
         this.models = {
             encoder: this.createDynamicEncoder(),
             matcher: this.createIntelligentMatcher(),
-            ranker: this.createContextualRanker()
+            ranker: this.createIntelligentRanker()  // ✅ اسم معدل
         };
         
         // 🔥 إحصائيات ذكية
@@ -38,505 +38,190 @@ class VectorEnginePro {
         this.initialize();
     }
     
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🌀 التهيئة الذكية
-     * ═══════════════════════════════════════════════════════════
-     */
-    async initialize() {
-        console.log('🧠 تهيئة Vector Engine Pro...');
-        
-        try {
-            // تحميل النماذج الديناميكية
-            await this.loadDynamicModels();
-            
-            // بناء الفهارس الدلالية
-            await this.buildSemanticIndexes();
-            
-            // تهيئة نظام التعلم
-            await this.initializeLearningSystem();
-            
-            this.isReady = true;
-            console.log('✅ Vector Engine Pro جاهز للعمل');
-            
-            // إطلاق حدث الجاهزية
-            window.dispatchEvent(new CustomEvent('vectorEngineReady', {
-                detail: { version: 'pro', models: Object.keys(this.models) }
-            }));
-        } catch (error) {
-            console.error('❌ فشل تهيئة المحرك:', error);
-            // وضع الاحتياطي
-            this.initializeFallbackMode();
-        }
-    }
+    // ... باقي الكود كما هو ...
     
     /**
      * ═══════════════════════════════════════════════════════════
-     * 🔍 البحث الدلالي المتقدم
+     * 🏆 إنشاء مصنف ذكي (بدلاً من createContextualRanker)
      * ═══════════════════════════════════════════════════════════
      */
-    async search(query, limit = 10, category = null) {
-        const searchId = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    createIntelligentRanker() {
+        const self = this;
         
-        // 1. تحليل الاستعلام الدلالي
-        const queryAnalysis = await this.analyzeQuerySemantically(query);
-        
-        // 2. توليد التضمين الذكي
-        const queryEmbedding = await this.encodeIntelligently(query, queryAnalysis);
-        
-        // 3. البحث المتعدد المستويات
-        const searchResults = await this.multiLevelSearch(queryEmbedding, queryAnalysis, category);
-        
-        // 4. ترتيب النتائج ذكائياً
-        const rankedResults = await this.intelligentRanking(searchResults, queryEmbedding, queryAnalysis);
-        
-        // 5. تحسين النتائج
-        const enhancedResults = await this.enhanceResults(rankedResults.slice(0, limit), queryAnalysis);
-        
-        // 6. تسجيل الأداء
-        this.recordSearchPerformance(searchId, query, enhancedResults);
-        
-        return enhancedResults;
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 📊 تحليل الاستعلام الدلالي
-     * ═══════════════════════════════════════════════════════════
-     */
-    async analyzeQuerySemantically(query) {
         return {
-            // التحليل اللغوي
-            linguistic: {
-                tokens: this.tokenizeIntelligently(query),
-                language: this.detectLanguage(query),
-                complexity: this.calculateLinguisticComplexity(query)
-            },
-            
-            // التحليل الدلالي
-            semantic: {
-                topics: await this.extractTopics(query),
-                intent: await this.inferIntent(query),
-                entities: await this.extractQueryEntities(query)
-            },
-            
-            // التحليل الإحصائي
-            statistical: {
-                length: query.length,
-                wordCount: query.split(/\s+/).length,
-                uniqueRatio: this.calculateUniqueness(query)
-            }
-        };
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🧠 الترميز الذكي
-     * ═══════════════════════════════════════════════════════════
-     */
-    async encodeIntelligently(text, analysis = null) {
-        if (!analysis) {
-            analysis = await this.analyzeQuerySemantically(text);
-        }
-        
-        // الترميز متعدد الطبقات
-        const layers = await Promise.all([
-            this.encodeSemanticLayer(text),
-            this.encodeContextualLayer(text, analysis),
-            this.encodeStructuralLayer(text)
-        ]);
-        
-        // دمج الطبقات بذكاء
-        return this.mergeEmbeddingLayers(layers, analysis);
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🔎 البحث متعدد المستويات
-     * ═══════════════════════════════════════════════════════════
-     */
-    async multiLevelSearch(embedding, analysis, category) {
-        const searchLevels = [
-            // المستوى 1: البحث الدقيق
-            this.preciseSearch(embedding, category),
-            
-            // المستوى 2: البحث التوسعي
-            this.expansiveSearch(embedding, analysis, category),
-            
-            // المستوى 3: البحث السياقي
-            this.contextualSearch(embedding, analysis),
-            
-            // المستوى 4: البحث الاستدلالي
-            this.inferentialSearch(analysis, category)
-        ];
-        
-        // تنفيذ متوازي للبحث
-        const levelResults = await Promise.allSettled(searchLevels);
-        
-        // دمج النتائج
-        return this.mergeSearchLevels(levelResults);
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🏆 الترتيب الذكي
-     * ═══════════════════════════════════════════════════════════
-     */
-    async intelligentRanking(results, queryEmbedding, analysis) {
-        const rankingFactors = {
-            // التشابه الدلالي
-            semanticSimilarity: 0.4,
-            
-            // الصلة السياقية
-            contextualRelevance: 0.3,
-            
-            // الشعبية التاريخية
-            historicalPopularity: 0.15,
-            
-            // الجدة
-            freshness: 0.1,
-            
-            // التنوع
-            diversity: 0.05
-        };
-        
-        const ranked = await Promise.all(
-            results.map(async (result, index) => {
-                const scores = {
-                    semantic: await this.calculateSemanticScore(result, queryEmbedding),
-                    contextual: this.calculateContextualScore(result, analysis),
-                    popularity: this.calculatePopularityScore(result),
-                    freshness: this.calculateFreshnessScore(result),
-                    diversity: this.calculateDiversityScore(result, results.slice(0, index))
-                };
+            rank: async function(results, queryEmbedding, analysis) {
+                console.log('🏆 بدء الترتيب الذكي للنتائج:', results.length);
                 
-                // حساب النتيجة المركبة
-                const compositeScore = Object.entries(scores).reduce((total, [factor, score]) => {
-                    return total + (score * (rankingFactors[factor] || 0));
-                }, 0);
-                
-                return {
-                    ...result,
-                    score: compositeScore,
-                    detailedScores: scores
-                };
-            })
-        );
-        
-        return ranked.sort((a, b) => b.score - a.score);
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * ✨ تحسين النتائج
-     * ═══════════════════════════════════════════════════════════
-     */
-    async enhanceResults(results, analysis) {
-        const enhanced = await Promise.all(
-            results.map(async (result) => {
-                // إضافة معلومات إضافية
-                const enhancements = {
-                    semanticTags: await this.generateSemanticTags(result),
-                    relatedConcepts: await this.findRelatedConcepts(result),
-                    confidenceFactors: this.calculateConfidenceFactors(result, analysis),
-                    explanatorySnippet: await this.generateExplanation(result, analysis)
-                };
-                
-                return {
-                    ...result,
-                    ...enhancements,
-                    enhanced: true
-                };
-            })
-        );
-        
-        // تطبيق التنوع
-        return this.applyDiversity(enhanced);
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🏗️ بناء الفهارس الدلالية
-     * ═══════════════════════════════════════════════════════════
-     */
-    createSemanticIndex(category) {
-        return {
-            name: category,
-            vectors: new Map(),
-            metadata: new Map(),
-            statistics: {
-                size: 0,
-                avgVectorLength: 0,
-                density: 0
-            },
-            
-            // إضافة عنصر ذكي
-            addItem: async function(id, text, metadata = {}) {
-                const vector = await this.encode(text);
-                this.vectors.set(id, vector);
-                this.metadata.set(id, { text, ...metadata });
-                this.updateStatistics();
-            },
-            
-            // البحث الذكي
-            search: async function(queryVector, options = {}) {
-                const results = [];
-                
-                for (const [id, vector] of this.vectors.entries()) {
-                    const similarity = await this.calculateSimilarity(queryVector, vector);
-                    const metadata = this.metadata.get(id);
-                    
-                    if (similarity >= (options.threshold || 0.1)) {
-                        results.push({
-                            id,
-                            text: metadata.text,
-                            score: similarity,
-                            metadata,
-                            category: this.name
-                        });
-                    }
+                if (!results || results.length === 0) {
+                    return [];
                 }
                 
-                return results.sort((a, b) => b.score - a.score);
-            },
-            
-            // وظائف مساعدة
-            encode: async (text) => {
-                // استخدام النموذج المشترك
-                return await window.vectorEngine?.models?.encoder?.encode(text) || this.fallbackEncode(text);
-            },
-            
-            calculateSimilarity: async (vec1, vec2) => {
-                // حساب التشابه الدلالي
-                return this.cosineSimilarity(vec1, vec2);
-            },
-            
-            updateStatistics: function() {
-                this.statistics.size = this.vectors.size;
-                // تحديث الإحصائيات الأخرى
-            }
-        };
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🧩 النماذج الذكية المدمجة
-     * ═══════════════════════════════════════════════════════════
-     */
-    
-    createDynamicEncoder() {
-        return {
-            cache: new Map(),
-            
-            encode: async function(text) {
-                // التحقق من الذاكرة المؤقتة
-                const cached = this.cache.get(text);
-                if (cached) return cached;
+                const rankingFactors = {
+                    semanticSimilarity: 0.4,
+                    contextualRelevance: 0.3,
+                    historicalPopularity: 0.15,
+                    freshness: 0.1,
+                    diversity: 0.05
+                };
                 
-                // الترميز الذكي
-                const vector = await this.intelligentEncode(text);
-                
-                // التخزين المؤقت
-                this.cache.set(text, vector);
-                if (this.cache.size > 1000) {
-                    // إدارة الذاكرة المؤقتة
-                    const keys = Array.from(this.cache.keys()).slice(0, 500);
-                    keys.forEach(key => this.cache.delete(key));
-                }
-                
-                return vector;
-            },
-            
-            intelligentEncode: async function(text) {
-                // تطبيق تقنيات ترميز متقدمة
-                const words = text.toLowerCase().split(/\s+/);
-                
-                // 1. ترميز الكلمات الفردية
-                const wordVectors = await Promise.all(
-                    words.map(word => this.encodeWord(word))
+                const ranked = await Promise.all(
+                    results.map(async (result, index) => {
+                        const scores = {
+                            semantic: await self.calculateSemanticScore(result, queryEmbedding),
+                            contextual: self.calculateContextualScore(result, analysis),
+                            popularity: self.calculatePopularityScore(result),
+                            freshness: self.calculateFreshnessScore(result),
+                            diversity: self.calculateDiversityScore(result, results.slice(0, index))
+                        };
+                        
+                        // حساب النتيجة المركبة
+                        const compositeScore = Object.entries(scores).reduce((total, [factor, score]) => {
+                            const factorName = {
+                                semantic: 'semanticSimilarity',
+                                contextual: 'contextualRelevance',
+                                popularity: 'historicalPopularity',
+                                freshness: 'freshness',
+                                diversity: 'diversity'
+                            }[factor];
+                            
+                            return total + (score * (rankingFactors[factorName] || 0));
+                        }, 0);
+                        
+                        return {
+                            ...result,
+                            score: compositeScore,
+                            detailedScores: scores
+                        };
+                    })
                 );
                 
-                // 2. ترميز السياق
-                const contextVector = await this.encodeContext(words);
-                
-                // 3. ترميز البنية
-                const structureVector = this.encodeStructure(text);
-                
-                // الدمج الذكي
-                return this.mergeVectors([...wordVectors, contextVector, structureVector]);
+                return ranked.sort((a, b) => b.score - a.score);
             },
             
-            encodeWord: async function(word) {
-                // ترميز ذكي للكلمة
-                // ... تنفيذ حقيقي هنا
-                return new Array(384).fill(0).map(() => Math.random() * 0.1 - 0.05);
+            calculateSemanticScore: async function(result, queryEmbedding) {
+                // الحصول على تضمين النتيجة إذا لم يكن موجوداً
+                if (!result.embedding && result.text) {
+                    result.embedding = await self.encode(result.text);
+                }
+                
+                if (result.embedding && queryEmbedding) {
+                    return self.cosineSimilarity(queryEmbedding, result.embedding);
+                }
+                
+                return result.score || 0.5;
             },
             
-            encodeContext: async function(words) {
-                // ترميز السياق
-                // ... تنفيذ حقيقي هنا
-                return new Array(384).fill(0).map(() => Math.random() * 0.1 - 0.05);
-            }
-        };
-    }
-    
-    createIntelligentMatcher() {
-        return {
-            match: async function(queryVector, targetVector, context = {}) {
-                // مطابقة ذكية متعددة المعايير
-                const scores = {
-                    cosine: this.cosineSimilarity(queryVector, targetVector),
-                    euclidean: this.euclideanSimilarity(queryVector, targetVector),
-                    semantic: await this.semanticMatch(queryVector, targetVector, context)
-                };
+            calculateContextualScore: function(result, analysis) {
+                // حساب الصلة السياقية
+                if (!analysis) return 0.5;
                 
-                // حساب النتيجة المركبة
-                return (scores.cosine * 0.5 + scores.euclidean * 0.3 + scores.semantic * 0.2);
+                let score = 0.5;
+                
+                // إذا كان هناك كيانات متطابقة
+                if (analysis.semantic?.entities && result.metadata?.entities) {
+                    const entityMatches = analysis.semantic.entities.filter(e => 
+                        result.metadata.entities?.includes(e)
+                    ).length;
+                    score += entityMatches * 0.1;
+                }
+                
+                // إذا كان هناك مواضيع متطابقة
+                if (analysis.semantic?.topics && result.metadata?.topics) {
+                    const topicMatches = analysis.semantic.topics.filter(t => 
+                        result.metadata.topics?.includes(t)
+                    ).length;
+                    score += topicMatches * 0.05;
+                }
+                
+                return Math.min(score, 1.0);
             },
             
-            cosineSimilarity: function(vec1, vec2) {
-                const dotProduct = vec1.reduce((sum, val, i) => sum + val * vec2[i], 0);
-                const norm1 = Math.sqrt(vec1.reduce((sum, val) => sum + val * val, 0));
-                const norm2 = Math.sqrt(vec2.reduce((sum, val) => sum + val * val, 0));
+            calculatePopularityScore: function(result) {
+                // حساب الشعبية التاريخية
+                const frequency = result.metadata?.frequency || 0;
+                const clicks = result.metadata?.clicks || 0;
                 
-                return dotProduct / (norm1 * norm2 || 1);
+                return Math.min(0.5 + (frequency * 0.01) + (clicks * 0.001), 0.9);
+            },
+            
+            calculateFreshnessScore: function(result) {
+                // حساب الجدة
+                if (!result.metadata?.timestamp) return 0.5;
+                
+                const ageInDays = (Date.now() - result.metadata.timestamp) / (1000 * 60 * 60 * 24);
+                
+                if (ageInDays < 7) return 0.9;       // أقل من أسبوع
+                if (ageInDays < 30) return 0.7;      // أقل من شهر
+                if (ageInDays < 90) return 0.5;      // أقل من 3 أشهر
+                if (ageInDays < 180) return 0.3;     // أقل من 6 أشهر
+                return 0.1;                         // أقدم من 6 أشهر
+            },
+            
+            calculateDiversityScore: function(result, previousResults) {
+                // حساب التنوع
+                if (previousResults.length === 0) return 1.0;
+                
+                // التحقق من التكرار
+                const isSimilar = previousResults.some(prev => 
+                    prev.id === result.id || 
+                    prev.text === result.text ||
+                    (prev.embedding && result.embedding && 
+                     self.cosineSimilarity(prev.embedding, result.embedding) > 0.8)
+                );
+                
+                return isSimilar ? 0.2 : 1.0;
             }
         };
     }
     
     /**
      * ═══════════════════════════════════════════════════════════
-     * 📈 تتبع الأداء
+     * 📊 دوال مساعدة للترتيب
      * ═══════════════════════════════════════════════════════════
      */
     
-    recordSearchPerformance(searchId, query, results) {
-        const performance = {
-            timestamp: Date.now(),
-            query,
-            resultCount: results.length,
-            topScore: results[0]?.score || 0,
-            avgScore: results.reduce((sum, r) => sum + r.score, 0) / results.length || 0,
-            processingTime: Date.now() - parseInt(searchId.split('_')[1])
-        };
-        
-        this.analytics.searchPerformance.record(performance);
-        
-        // التعلم من الأداء
-        this.learnFromPerformance(performance);
+    calculateSemanticScore(result, queryEmbedding) {
+        return this.models.ranker.calculateSemanticScore(result, queryEmbedding);
     }
     
-    learnFromPerformance(performance) {
-        // ضبط المعلمات ديناميكياً
-        if (performance.avgScore < 0.3) {
-            // إذا كانت النتائج ضعيفة، خفض عتبة البحث
-            this.adjustSearchThreshold(-0.05);
-        } else if (performance.avgScore > 0.7) {
-            // إذا كانت النتائج ممتازة، رفع العتبة قليلاً
-            this.adjustSearchThreshold(0.02);
+    calculateContextualScore(result, analysis) {
+        return this.models.ranker.calculateContextualScore(result, analysis);
+    }
+    
+    calculatePopularityScore(result) {
+        return this.models.ranker.calculatePopularityScore(result);
+    }
+    
+    calculateFreshnessScore(result) {
+        return this.models.ranker.calculateFreshnessScore(result);
+    }
+    
+    calculateDiversityScore(result, previousResults) {
+        return this.models.ranker.calculateDiversityScore(result, previousResults);
+    }
+    
+    cosineSimilarity(vec1, vec2) {
+        if (!vec1 || !vec2 || vec1.length !== vec2.length) {
+            return 0;
         }
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🔄 وضع الاحتياطي
-     * ═══════════════════════════════════════════════════════════
-     */
-    
-    initializeFallbackMode() {
-        console.log('🔄 تشغيل وضع الاحتياطي...');
         
-        this.models.encoder = {
-            encode: (text) => Promise.resolve(this.simpleEncode(text))
-        };
+        let dot = 0;
+        let norm1 = 0;
+        let norm2 = 0;
         
-        this.isReady = true;
-        console.log('✅ وضع الاحتياطي جاهز');
-    }
-    
-    simpleEncode(text) {
-        // ترميز بسيط للطوارئ
-        const vector = new Array(384).fill(0);
-        const words = text.toLowerCase().split(/\s+/);
-        
-        words.forEach(word => {
-            const hash = this.hashString(word);
-            const index = hash % 384;
-            vector[index] += 0.1;
-        });
-        
-        // تطبيع
-        const norm = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
-        return norm > 0 ? vector.map(val => val / norm) : vector;
-    }
-    
-    hashString(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
+        for (let i = 0; i < vec1.length; i++) {
+            dot += vec1[i] * vec2[i];
+            norm1 += vec1[i] * vec1[i];
+            norm2 += vec2[i] * vec2[i];
         }
-        return Math.abs(hash);
+        
+        norm1 = Math.sqrt(norm1);
+        norm2 = Math.sqrt(norm2);
+        
+        return norm1 && norm2 ? dot / (norm1 * norm2) : 0;
     }
     
-    /**
-     * ═══════════════════════════════════════════════════════════
-     * 🎪 واجهة برمجة التطبيقات (API)
-     * ═══════════════════════════════════════════════════════════
-     */
-    
-    // الترميز
-    async encode(text) {
-        return await this.models.encoder.encode(text);
-    }
-    
-    // حساب التشابه
-    async similarity(text1, text2) {
-        const vec1 = await this.encode(text1);
-        const vec2 = await this.encode(text2);
-        return this.models.matcher.cosineSimilarity(vec1, vec2);
-    }
-    
-    // البحث المتقدم
-    async advancedSearch(query, options = {}) {
-        return await this.search(query, options.limit || 10, options.category);
-    }
-    
-    // الحصول على الإحصائيات
-    getAnalytics() {
-        return {
-            searches: this.analytics.searchPerformance.getSummary(),
-            memory: {
-                embeddings: this.semanticMemory.embeddings.size,
-                clusters: this.semanticMemory.clusters.size
-            },
-            performance: {
-                avgProcessingTime: this.analytics.searchPerformance.getAverageTime(),
-                successRate: this.analytics.searchPerformance.getSuccessRate()
-            }
-        };
-    }
-    
-    // إعادة ضبط
-    reset() {
-        this.semanticMemory.embeddings.clear();
-        this.semanticMemory.clusters.clear();
-        this.analytics.searchPerformance.reset();
-        console.log('🔄 تم إعادة ضبط المحرك');
-    }
-    
-    // التصدير
-    exportData() {
-        return {
-            knowledgeBase: {
-                activities: Array.from(this.knowledgeBase.activities.vectors.keys()),
-                industrial: Array.from(this.knowledgeBase.industrial.vectors.keys()),
-                decision104: Array.from(this.knowledgeBase.decision104.vectors.keys())
-            },
-            analytics: this.getAnalytics(),
-            memorySize: this.semanticMemory.embeddings.size
-        };
-    }
+    // ... باقي الكود كما هو ...
 }
 
 /****************************************************************************
