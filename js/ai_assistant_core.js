@@ -607,3 +607,45 @@ ${data.x && data.y ? `📍 **الإحداثيات:** ${data.y}, ${data.x}` : ''}
 // ==================== التهيئة العالمية ====================
 window.smartAssistant = new TrulyIntelligentAssistant();
 console.log('🚀 النظام الذكي V11 - جاهز للعمل بدون قوائم ثابتة!');
+
+// أضف في نهاية ملف ai_assistant_core.js (بعد تعريف TrulyIntelligentAssistant):
+
+// ==================== التوافقية مع النظام القديم ====================
+// هذا يحافظ على التوافق مع assistant_ui.js الذي يتوقع وجود AssistantAI
+
+class AssistantAI {
+    constructor() {
+        console.log("⚠️ استخدام النظام التوافقي القديم - يرجى التحديث إلى النظام الذكي V11");
+        this.legacyMode = true;
+    }
+    
+    async getResponse(query) {
+        console.log("🔗 التوجيه للنظام الذكي V11...");
+        
+        // توجيه الاستعلام للنظام الذكي الجديد
+        if (window.smartAssistant && window.smartAssistant.processQuery) {
+            const response = await window.smartAssistant.processQuery(query);
+            return {
+                text: response.text,
+                type: response.type || 'legacy',
+                confidence: response.confidence || 0.5,
+                timestamp: Date.now()
+            };
+        } else {
+            // النظام الجديد غير متاح، استخدام النظام القديم
+            return {
+                text: "جاري تهيئة النظام الذكي...",
+                type: "system",
+                confidence: 0,
+                timestamp: Date.now()
+            };
+        }
+    }
+}
+
+// تعيين كلا النظامين للتوافق
+window.AssistantAI = AssistantAI; // لـ assistant_ui.js
+window.assistant = new AssistantAI(); // للتوافق مع الكود القديم
+window.smartAssistant = new TrulyIntelligentAssistant(); // النظام الجديد
+
+console.log('✅ تم تهيئة كلا النظامين (القديم والجديد) للتوافق');
