@@ -65,29 +65,67 @@ class VectorEngineV2 {
     async loadDatabases() {
         const tasks = Object.entries(this.urls).map(async ([key, url]) => {
             try {
+                console.log(`⏳ تحميل ${key} من: ${url}`);
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`فشل تحميل: ${key}`);
+                if (!response.ok) {
+                    throw new Error(`فشل التحميل: ${response.status} ${response.statusText}`);
+                }
                 
                 const json = await response.json();
                 let vectorArray = [];
                 
+                // 🔥 معالجة دقيقة للهيكل
+                console.log(`🔍 فحص بنية ${key}:`, Object.keys(json));
+                
+                // هيكل v5-lean: { data: [{id, vectors: {primary}}] }
                 if (json.data && Array.isArray(json.data)) {
-                    vectorArray = json.data.map(item => ({
-                        id: item.id,
-                        vector: item.vectors ? item.vectors.primary : null
-                    })).filter(item => item.vector !== null);
-                } else if (json.vectors) {
-                    vectorArray = json.vectors;
+                    vectorArray = json.data
+                        .map(item => {
+                            // التحقق من وجود المتجه
+                            const vector = item.vectors?.primary || item.vector;
+                            if (!vector) {
+                                console.warn(`⚠️ عنصر بدون متجه: ${item.id}`);
+                                return null;
+                            }
+                            return {
+                                id: item.id,
+                                vector: vector
+                            };
+                        })
+                        .filter(item => item !== null);
+                }
+                // هيكل قديم: { vectors: [...] }
+                else if (json.vectors && Array.isArray(json.vectors)) {
+                    vectorArray = json.vectors.filter(item => item.vector);
+                }
+                // هيكل مباشر: [...{id, vector}]
+                else if (Array.isArray(json)) {
+                    vectorArray = json.filter(item => item.vector);
+                }
+                else {
+                    console.error(`❌ بنية غير معروفة في ${key}:`, json);
                 }
                 
                 this.databases[key].vectors = vectorArray;
-                console.log(`📦 [${key}]: ${vectorArray.length} متجه`);
+                console.log(`✅ [${key}]: ${vectorArray.length} متجه تم تحميله`);
+                
+                if (vectorArray.length === 0) {
+                    console.error(`❌ تحذير: ${key} فارغ! تحقق من ملف JSON`);
+                }
             } catch (error) {
-                console.error(`❌ خطأ في تحميل ${key}:`, error);
+                console.error(`❌ خطأ حرج في تحميل ${key}:`, error);
+                console.error(`   الرابط: ${url}`);
             }
         });
         
         await Promise.all(tasks);
+        
+        // تقرير نهائي
+        console.log(`\n📊 ملخص التحميل:`);
+        Object.entries(this.databases).forEach(([key, db]) => {
+            const status = db.vectors.length > 0 ? '✅' : '❌';
+            console.log(`   ${status} ${key}: ${db.vectors.length} متجه`);
+        });
     }
     
     /**
