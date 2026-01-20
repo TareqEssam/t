@@ -50,29 +50,58 @@ class RevolutionaryAssistant {
      * ═══════════════════════════════════════════════════════════
      */
     async initialize() {
-        console.log('🚀 تهيئة Revolutionary Assistant V12...');
+    console.log('🚀 تهيئة المساعد الذكي...');
 
-        // تحميل القواعد المحلية (للتوافق)
-        this.databases = {
-            activities: typeof masterActivityDB !== 'undefined' ? masterActivityDB : [],
-            industrial: typeof industrialAreasData !== 'undefined' ? industrialAreasData : [],
-            decision104: typeof sectorAData !== 'undefined' ? sectorAData : null
-        };
+    // تحميل القواعد المحلية
+    this.databases = {
+        activities: window.masterActivityDB || [],
+        industrial: window.industrialAreasData || [],
+        decision104: window.sectorAData || null
+    };
 
-        // الانتظار لمحرك المتجهات
+    console.log(`📊 قواعد البيانات:`);
+    console.log(`   - الأنشطة: ${this.databases.activities.length}`);
+    console.log(`   - المناطق: ${this.databases.industrial.length}`);
+    console.log(`   - القرار 104: ${this.databases.decision104 ? 'موجود' : 'غير موجود'}`);
+
+    // تحقق من محرك المتجهات
+    const checkEngine = () => {
         if (window.vEngine) {
+            console.log('✅ تم العثور على محرك المتجهات');
             if (window.vEngine.isReady) {
+                console.log('✅ محرك المتجهات جاهز بالفعل');
                 this.onEngineReady();
             } else {
+                console.log('⏳ انتظار جاهزية محرك المتجهات...');
                 window.addEventListener('vectorEngineReady', () => {
+                    console.log('🎯 تم استقبال حدث جاهزية المحرك');
                     this.onEngineReady();
                 });
             }
-        } else {
-            console.warn('⚠️ محرك المتجهات غير موجود، استخدام وضع احتياطي');
-            this.isReady = true;
+            return true;
         }
-    }
+        return false;
+    };
+
+    // المحاولة الأولى
+    if (checkEngine()) return;
+
+    // المحاولة مع تأخير
+    console.log('⏳ انتظار تحميل المحرك...');
+    const maxAttempts = 10;
+    let attempts = 0;
+
+    const interval = setInterval(() => {
+        attempts++;
+        if (checkEngine()) {
+            clearInterval(interval);
+        } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            console.warn('⚠️ فشل العثور على المحرك بعد عدة محاولات');
+            this.onEngineReady(); // المتابعة على أي حال
+        }
+    }, 500);
+}
 
     /**
      * ═══════════════════════════════════════════════════════════
@@ -1067,3 +1096,4 @@ console.log('   ✅ تعلم تلقائي ديناميكي');
 console.log('   ✅ تحليل استعلام متعدد الأبعاد');
 console.log('   ✅ متوافق مع vector_engine.js');
 console.log('   ✅ يحافظ على كل الوظائف الذكية');
+
