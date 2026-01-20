@@ -157,7 +157,7 @@ class AssistantAI {
         // ══════ الكشف عن نوع الاستعلام ══════
         
         // استعلام عن نشاط
-        if (/نشاط|مصنع|ورشة|تصنيع|إنتاج|مشروع|شركة|محل|فندق|مطعم|مخبز/.test(text)) {
+        if (/نشاط|مصنع|ورشة|تصنيع|إنتاج|مشروع|شركة|محل|فندق|مطعم|مخبز|مكتب|عيادة|صيدلية/.test(text)) {
             intent.type = 'activity';
             
             // تحديد النوع الفرعي
@@ -177,23 +177,23 @@ class AssistantAI {
         }
         
         // استعلام عن منطقة صناعية
-        else if (/منطقة صناعية|منطقة|صناعية|مدينة صناعية/.test(text)) {
+        else if (/منطقة صناعية|منطقة|صناعية|مدينة صناعية|زهراء|العاشر|السادات|برج العرب/.test(text)) {
             intent.type = 'industrial_area';
             
             if (/محافظة|موقع|اين|مكان/.test(text)) {
                 intent.subType = 'location';
             } else if (/جهة|ولاية|إدارة|مسؤول/.test(text)) {
                 intent.subType = 'authority';
-            } else if (/قرار|إنشاء|تأسيس/.test(text)) {
+            } else if (/قرار|إنشاء|تأسيس|مساحة/.test(text)) {
                 intent.subType = 'decision';
             }
         }
         
         // استعلام عن قرار 104
-        else if (/قرار 104|104|حوافز|إعفاء|تخفيض|مزايا/.test(text)) {
+        else if (/قرار 104|104|حوافز|إعفاء|تخفيض|مزايا|خلايا شمسية|هيدروجين|طاقة متجددة/.test(text)) {
             intent.type = 'decision104';
             
-            if (/قطاع|مجال|نوع/.test(text)) {
+            if (/قطاع|مجال|نوع|قطاع أ|قطاع ب/.test(text)) {
                 intent.subType = 'sector';
             }
         }
@@ -364,13 +364,53 @@ class AssistantAI {
      * جلب تفاصيل النشاط من masterActivityDB
      */
     getActivityDetails(activityId) {
-        if (!this.databases.activities) return null;
+        if (!this.databases.activities) {
+            console.warn('⚠️ قاعدة masterActivityDB غير محملة');
+            return null;
+        }
         
-        return this.databases.activities.find(item => 
-            item.value === activityId || 
-            item.text === activityId ||
-            item.text.includes(activityId)
-        );
+        console.log(`🔍 البحث عن: "${activityId}" في قاعدة البيانات المحلية...`);
+        
+        // البحث بطرق متعددة لضمان العثور على البيانات
+        let data = this.databases.activities.find(item => item.value === activityId);
+        
+        if (!data) {
+            // محاولة البحث بالنص
+            data = this.databases.activities.find(item => 
+                item.text && item.text.toLowerCase().includes(activityId.toLowerCase())
+            );
+        }
+        
+        if (!data) {
+            // محاولة البحث بالكلمات المفتاحية
+            data = this.databases.activities.find(item => 
+                item.keywords && item.keywords.some(kw => 
+                    kw.toLowerCase().includes(activityId.toLowerCase()) ||
+                    activityId.toLowerCase().includes(kw.toLowerCase())
+                )
+            );
+        }
+        
+        if (data) {
+            console.log(`✅ تم العثور على: ${data.text}`);
+            
+            // التحقق من وجود details
+            if (!data.details) {
+                console.warn(`⚠️ النشاط "${data.text}" لا يحتوي على حقل details`);
+                // إنشاء كائن details فارغ لتجنب الأخطاء
+                data.details = {
+                    act: 'لا توجد معلومات تفصيلية متاحة حالياً',
+                    req: 'غير محدد',
+                    auth: 'غير محدد',
+                    loc: 'غير محدد',
+                    leg: 'غير محدد'
+                };
+            }
+        } else {
+            console.warn(`❌ لم يتم العثور على "${activityId}" في قاعدة البيانات`);
+        }
+        
+        return data;
     }
     
     /**
@@ -516,15 +556,42 @@ ${d.link ? `🔗 **رابط الدليل:** ${d.link}` : ''}
     async handleIndustrialQuery(vectorResults, query, intent) {
         const areas = vectorResults.industrial || [];
         
+        console.log(`🏭 نتائج البحث عن المناطق الصناعية: ${areas.length} نتيجة`);
+        
         if (areas.length === 0) {
+            // محاولة البحث في القاعدة المحلية مباشرة
+            if (this.databases.industrial) {
+                const localSearch = this.databases.industrial.filter(area => {
+                    const searchLower = query.toLowerCase();
+                    return area.name.toLowerCase().includes(searchLower) ||
+                           area.governorate.toLowerCase().includes(searchLower) ||
+                           searchLower.includes(area.name.toLowerCase().substring(0, 10));
+                });
+                
+                if (localSearch.length > 0) {
+                    console.log(`✅ تم العثور على ${localSearch.length} منطقة في البحث المحلي`);
+                    const areaData = localSearch[0];
+                    this.currentContext.relatedData = areaData;
+                    
+                    return this.createResponse(
+                        this.formatIndustrialAreaInfo(areaData),
+                        'area_full',
+                        0.9,
+                        { area: areaData }
+                    );
+                }
+            }
+            
             return this.createResponse(
-                'لم أجد منطقة صناعية مطابقة. هل يمكنك توضيح اسم المنطقة أو المحافظة؟',
+                'لم أجد منطقة صناعية مطابقة. هل يمكنك توضيح اسم المنطقة أو المحافظة؟\n\nمثال: "منطقة زهراء المعادي" أو "العاشر من رمضان"',
                 'no_results',
                 0.2
             );
         }
         
         const topArea = areas[0];
+        console.log(`🎯 أفضل منطقة: ${topArea.id} (${Math.round(topArea.score * 100)}%)`);
+        
         const areaData = this.getIndustrialAreaDetails(topArea.id);
         
         if (!areaData) {
@@ -536,6 +603,8 @@ ${d.link ? `🔗 **رابط الدليل:** ${d.link}` : ''}
         }
         
         this.currentContext.relatedData = areaData;
+        this.currentContext.lastEntity = areaData.name;
+        this.currentContext.lastEntityType = 'area';
         
         return this.createResponse(
             this.formatIndustrialAreaInfo(areaData),
@@ -546,12 +615,29 @@ ${d.link ? `🔗 **رابط الدليل:** ${d.link}` : ''}
     }
     
     getIndustrialAreaDetails(areaId) {
-        if (!this.databases.industrial) return null;
+        if (!this.databases.industrial) {
+            console.warn('⚠️ قاعدة المناطق الصناعية غير محملة');
+            return null;
+        }
         
-        return this.databases.industrial.find(area => 
-            area.name === areaId || 
-            area.name.includes(areaId)
-        );
+        console.log(`🔍 البحث عن منطقة: "${areaId}"`);
+        
+        // البحث بطرق متعددة
+        let area = this.databases.industrial.find(a => a.name === areaId);
+        
+        if (!area) {
+            area = this.databases.industrial.find(a => 
+                a.name.includes(areaId) || areaId.includes(a.name.substring(0, 15))
+            );
+        }
+        
+        if (area) {
+            console.log(`✅ تم العثور على: ${area.name}`);
+        } else {
+            console.warn(`❌ لم يتم العثور على "${areaId}"`);
+        }
+        
+        return area;
     }
     
     formatIndustrialAreaInfo(area) {
@@ -583,21 +669,69 @@ ${area.x && area.y ? `📌 **الإحداثيات:** ${area.y}, ${area.x}` : ''}
     async handleDecision104Query(vectorResults, query, intent) {
         const results = vectorResults.decision104 || [];
         
+        console.log(`💰 نتائج البحث في قرار 104: ${results.length} نتيجة`);
+        
         if (results.length === 0) {
             return this.createResponse(
-                'لم أجد معلومات عن هذا النشاط في قرار 104. النشاط قد لا يكون ضمن الأنشطة المشمولة بالحوافز.',
+                'لم أجد معلومات عن هذا النشاط في قرار 104 لسنة 2022.\n\n❌ النشاط غير مشمول بالحوافز حالياً.\n\n💡 الأنشطة المشمولة تشمل: الطاقة المتجددة، الهيدروجين الأخضر، الصناعات الغذائية الاستراتيجية، والمنسوجات والملابس.',
                 'no_results',
                 0.2
             );
         }
         
         const topResult = results[0];
+        console.log(`🎯 أفضل نتيجة في 104: ${topResult.id} (${Math.round(topResult.score * 100)}%)`);
+        
+        // تحديد القطاع من البيانات
+        let sector = 'غير محدد';
+        let sectorDetails = '';
+        
+        if (this.databases.decision104) {
+            // البحث في القطاع أ
+            for (const [category, items] of Object.entries(this.databases.decision104)) {
+                if (Array.isArray(items)) {
+                    const found = items.find(item => 
+                        item.toLowerCase().includes(topResult.id.toLowerCase()) ||
+                        topResult.id.toLowerCase().includes(item.toLowerCase().substring(0, 20))
+                    );
+                    
+                    if (found) {
+                        sector = 'القطاع أ';
+                        sectorDetails = `**الفئة:** ${category}\n**التفاصيل:** ${found}`;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        const responseText = `
+✅ **نعم، هذا النشاط مشمول في قرار 104 لسنة 2022**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 **النشاط:** ${topResult.id}
+
+🎯 **القطاع:** ${sector}
+
+${sectorDetails}
+
+📊 **نسبة المطابقة:** ${Math.round(topResult.score * 100)}%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 **الحوافز المتوقعة:**
+- إعفاءات جمركية
+- تخفيضات ضريبية
+- تسهيلات في إجراءات الترخيص
+
+💬 يمكنك سؤالي عن التفاصيل الإضافية
+        `.trim();
         
         return this.createResponse(
-            `✅ **نعم، هذا النشاط مشمول في قرار 104 لسنة 2022**\n\nالنشاط: ${topResult.id}\nنسبة المطابقة: ${Math.round(topResult.score * 100)}%\n\n💡 يمكنك سؤالي عن القطاع أو الحوافز التفصيلية`,
+            responseText,
             'decision104_match',
             topResult.score,
-            { decision104: results }
+            { decision104: results, sector }
         );
     }
     
