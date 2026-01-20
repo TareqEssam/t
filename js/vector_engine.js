@@ -783,3 +783,21 @@ if (typeof window.vectorEngine === 'undefined') {
 }
 
 console.log('🧠 Vector Engine Pro - المحرك الدلالي الذكي جاهز للتهيئة!');
+
+// في نهاية ملف vector_engine.js، أضف:
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM محمل، تهيئة المحرك...');
+    window.vEngine = window.vEngine || new VectorEnginePro();
+});
+
+// أو مباشرة بعد تعريف الكلاس
+window.vEngine = new VectorEnginePro();
+
+// أضف حدثاً عند الجاهزية
+window.dispatchEvent(new CustomEvent('vectorEngineReady', {
+    detail: { 
+        timestamp: Date.now(),
+        version: 'pro'
+    }
+}));
+
