@@ -567,4 +567,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-console.log('✅ assistant_ui.js تم 
+console.log('✅ assistant_ui.js تم التحميل بنجاح');
