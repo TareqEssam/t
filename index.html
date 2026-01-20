@@ -4880,24 +4880,33 @@ input.bg-success {
 
 </div> 
 
+<!-- مكتبات خارجية -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<!-- 1. قواعد البيانات -->
 <script src="js/activity_database.js"></script>
 <script src="js/decision104.js"></script>
 <script src="js/industrial_areas_data.js"></script>
 
-<script type="module" src="js/vector_engine.js"></script>
+<!-- 2. محرك المتجهات -->
+<script src="js/vector_engine.js"></script> <!-- ⚠️ أزل type="module" -->
 
-<script src="js/voice_handler.js"></script>
+<!-- 3. النواة الذكية للمساعد -->
+<script src="js/ai_assistant_core.js"></script>
+
+<!-- 4. المكونات الذكية -->
+<script src="js/neural_search_v6.js"></script>
 <script src="js/response_formatter.js"></script>
 
-<script src="js/neural_search_v6.js"></script>
-
-<script src="js/ai_assistant_core.js"></script>
-<script src="js/main_logic.js"></script> <script src="js/assistant_ui.js"></script>
+<!-- 5. المنطق والواجهة -->
+<script src="js/assistant_ui.js"></script>
+<script src="js/main_logic.js"></script>
 <script src="js/app.js"></script>
+
+<!-- 6. الصوت -->
+<script src="js/voice_handler.js"></script>
 
 <script>
     window.addEventListener('vectorEngineReady', () => {
