@@ -96,38 +96,44 @@ class VectorEngine {
         return Array.from(output.data);
     }
 
-    async search(query, limit = 10) {
-        if (!this.isReady) {
-            console.warn("⚠️ المحرك لم ينتهِ من تحميل البيانات بعد.");
-            return { activities: [], industrial: [], decision104: [] };
-        }
-
-        const queryVector = await this.getVector(query);
-        const results = {
-            activities: [],
-            industrial: [],
-            decision104: []
-        };
-
-        // البحث في القواعد الثلاث
-        for (const [key, db] of Object.entries(this.databases)) {
-            if (!db.vectors || db.vectors.length === 0) continue;
-
-            const scores = db.vectors.map(item => ({
-                id: item.id,
-                score: this.cosineSimilarity(queryVector, item.vector)
-            }));
-
-            // ترتيب حسب الأعلى تشابهاً وتصفية النتائج الضعيفة جداً
-            results[key] = scores
-                .sort((a, b) => b.score - a.score)
-                .slice(0, limit)
-                .filter(r => r.score > 0.15); // عتبة قبول مرنة للبحث الوصفي
-        }
-
-        return results;
+    async search(query, limit = 10, intentType = 'general') {
+    if (!this.isReady) {
+        console.warn("⚠️ المحرك لم ينتهِ من تحميل البيانات بعد.");
+        return { activities: [], industrial: [], decision104: [] };
     }
+
+    const queryVector = await this.getVector(query);
+    const results = { activities: [], industrial: [], decision104: [] };
+
+    // تحديد القواعد التي سنبحث فيها بناءً على النية
+    let targets = Object.keys(this.databases);
+    
+    if (intentType === 'activity') targets = ['activities'];
+    else if (intentType === 'industrial_area') targets = ['industrial'];
+    else if (intentType === 'decision104') targets = ['decision104'];
+
+    for (const key of targets) {
+        const db = this.databases[key];
+        if (!db.vectors || db.vectors.length === 0) continue;
+
+        const scores = db.vectors.map(item => ({
+            id: item.id,
+            score: this.cosineSimilarity(queryVector, item.vector)
+        }));
+
+        results[key] = scores
+            .sort((a, b) => b.score - a.score)
+            .slice(0, limit)
+            .filter(r => {
+                // عتبة ذكية: صارمة للأنشطة ومرنة قليلاً للمناطق
+                const minScore = (key === 'activities') ? 0.45 : 0.35;
+                return r.score > minScore;
+            });
+    }
+
+    return results;
 }
 
 // تصدير النسخة للمجال العام لضمان عمل app.js و neural_search
 window.vEngine = new VectorEngine();
+
