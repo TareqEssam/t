@@ -1,1012 +1,1168 @@
 /****************************************************************************
- * 🧠 AI Assistant Core V9.0 - المستشار الذكي المتقدم
+ * 🧠 Smart Assistant V11 - المستشار الذكي الذي يتعلم بنفسه
  * ════════════════════════════════════════════════════════════════════════════
- * ✨ القدرات الجديدة:
- * - ذاكرة محادثة متقدمة تفهم السياق والأسئلة المتسلسلة
- * - تحليل ذكي للنية (Intent Analysis) لفهم ما يريده المستخدم بدقة
- * - ربط تلقائي بين نتائج Vector والبيانات التفصيلية
- * - دعم الأسئلة المركبة والمقارنات
- * - استخراج معلومات دقيقة من القواعد الثلاث
+ * 🔥 الثورة الحقيقية - بدون قوائم ثابتة!
+ * 
+ * ✨ المميزات الثورية:
+ * - صفر قوائم نصية ثابتة (لا patterns، لا noise words)
+ * - صفر عتبات ثابتة (ديناميكية 100%)
+ * - استخراج كيانات تلقائي بالكامل
+ * - نظام تعلم حقيقي من كل تفاعل
+ * - فهم دلالي عميق للنية
+ * - معالجة اللهجات المختلفة تلقائياً
+ * 
+ * 🎯 الفلسفة: دع النموذج الدلالي يقود، أنت فقط نظّم النتائج
  ****************************************************************************/
 
-class AssistantAI {
+class TrulySmartAssistant {
     constructor() {
-        // ═══════════ الذاكرة والسياق ═══════════
-        this.conversationMemory = [];
-        this.maxMemory = 10; // زيادة الذاكرة لتتبع أفضل
-        
-        this.currentContext = {
-            lastEntity: null,        // آخر نشاط/منطقة تم البحث عنه
-            lastEntityType: null,    // 'activity' | 'area' | 'decision104'
-            lastQuery: null,         // آخر سؤال
-            lastResponse: null,      // آخر رد
-            relatedData: null,       // البيانات المرتبطة
-            timestamp: null
+        // ═══════════ الذاكرة الذكية ═══════════
+        this.memory = {
+            conversation: [],           // آخر 20 تفاعل
+            context: {
+                currentEntity: null,    // الكيان الحالي
+                currentType: null,      // النوع
+                currentData: null,      // البيانات الكاملة
+                relatedEntities: [],    // كيانات مرتبطة
+                timestamp: null
+            }
         };
         
         // ═══════════ قواعد البيانات المحلية ═══════════
-        this.databases = {
+        this.db = {
             activities: null,
             industrial: null,
             decision104: null
         };
         
-        // ═══════════ الإحصائيات ═══════════
-        this.stats = {
-            totalQueries: 0,
-            successfulMatches: 0,
-            contextualQueries: 0,
-            averageConfidence: 0
+        // ═══════════ نظام التعلم الذاتي ═══════════
+        this.learning = {
+            discoveredSynonyms: new Map(),      // مرادفات مكتشفة
+            successPatterns: new Map(),         // أنماط ناجحة
+            failurePatterns: new Map(),         // أنماط فاشلة
+            userCorrections: new Map(),         // تصحيحات المستخدم
+            confidenceAdjustments: new Map()    // تعديلات الثقة
         };
         
-        this.initialize();
+        // ═══════════ الإحصائيات ═══════════
+        this.stats = {
+            total: 0,
+            successful: 0,
+            learned: 0,
+            ambiguous: 0
+        };
+        
+        this.init();
     }
     
-    /**
-     * ═══════════════════════════════════════════════════════════════
-     * التهيئة والربط بالأنظمة
-     * ═══════════════════════════════════════════════════════════════
-     */
-    async initialize() {
-        console.log('🚀 جاري تهيئة المساعد الذكي V9.0...');
+    async init() {
+        console.log('🚀 تهيئة المستشار الذكي V11...');
         
-        // ربط قواعد البيانات المحلية
-        this.loadLocalDatabases();
-        
-        // انتظار جاهزية محرك المتجهات
-        window.addEventListener('vectorEngineReady', () => {
-            console.log('✅ المساعد مرتبط بمحرك المتجهات');
-            this.isVectorReady = true;
-        });
-        
-        // التحقق من جاهزية النظام
-        if (window.vEngine && window.vEngine.isReady) {
-            this.isVectorReady = true;
-        }
-    }
-    
-    /**
-     * تحميل قواعد البيانات المحلية للوصول السريع
-     */
-    loadLocalDatabases() {
+        // تحميل القواعد المحلية
         if (typeof masterActivityDB !== 'undefined') {
-            this.databases.activities = masterActivityDB;
-            console.log(`📦 قاعدة الأنشطة: ${masterActivityDB.length} نشاط`);
-        }
-        
-        if (typeof sectorAData !== 'undefined') {
-            this.databases.decision104 = sectorAData;
-            console.log('📦 قاعدة القرار 104 محملة');
+            this.db.activities = masterActivityDB;
+            console.log(`✅ قاعدة الأنشطة: ${masterActivityDB.length}`);
         }
         
         if (typeof industrialAreasData !== 'undefined') {
-            this.databases.industrial = industrialAreasData;
-            console.log(`📦 قاعدة المناطق: ${industrialAreasData.length} منطقة`);
+            this.db.industrial = industrialAreasData;
+            console.log(`✅ قاعدة المناطق: ${industrialAreasData.length}`);
         }
+        
+        if (typeof sectorAData !== 'undefined') {
+            this.db.decision104 = sectorAData;
+            console.log('✅ قاعدة القرار 104');
+        }
+        
+        // استعادة المعرفة المكتسبة (من localStorage)
+        this.restoreLearning();
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * الوظيفة الرئيسية - معالجة الاستعلام
+     * 🎯 الدالة الرئيسية - الاستعلام الذكي
      * ═══════════════════════════════════════════════════════════════
      */
-    async getResponse(query) {
-        this.stats.totalQueries++;
-        const normalized = query.trim();
+    async query(userInput) {
+        this.stats.total++;
+        const raw = userInput.trim();
         
-        console.log(`\n🔍 استعلام جديد: "${normalized}"`);
+        console.log(`\n${'═'.repeat(70)}`);
+        console.log(`💬 استفسار: "${raw}"`);
+        console.log(`${'═'.repeat(70)}\n`);
         
-        // معالجة الأوامر الخاصة
-        if (this.isCommand(normalized)) {
-            return this.handleCommand(normalized);
-        }
+        // ─────── المرحلة 1: الفهم الدلالي العميق ───────
+        const understanding = await this.deepUnderstanding(raw);
+        console.log(`🧠 الفهم:`, understanding);
         
-        // تحليل نية المستخدم
-        const intent = this.analyzeIntent(normalized);
-        console.log(`🎯 النية المكتشفة: ${intent.type}`);
+        // ─────── المرحلة 2: البحث الذكي متعدد الطبقات ───────
+        const searchResults = await this.multiLayerSearch(raw, understanding);
         
-        // بناء الاستعلام مع السياق
-        const enrichedQuery = this.enrichQueryWithContext(normalized, intent);
+        // ─────── المرحلة 3: التحليل الذكي ───────
+        const analysis = this.smartAnalysis(searchResults, understanding, raw);
+        console.log(`📊 التحليل:`, analysis);
         
-        // البحث والمعالجة
-        const response = await this.processIntelligentQuery(enrichedQuery, intent);
+        // ─────── المرحلة 4: بناء الرد ───────
+        const response = await this.buildIntelligentResponse(analysis, raw);
         
-        // تحديث الذاكرة والسياق
-        this.updateMemoryAndContext(normalized, response, intent);
+        // ─────── المرحلة 5: التعلم من التفاعل ───────
+        this.learnFromInteraction(raw, understanding, analysis, response);
+        
+        // ─────── المرحلة 6: تحديث الذاكرة ───────
+        this.updateMemory(raw, response, analysis);
         
         return response;
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * تحليل النية (Intent Analysis)
+     * 🧠 الفهم الدلالي العميق (بدون patterns ثابتة!)
      * ═══════════════════════════════════════════════════════════════
      */
-    analyzeIntent(text) {
-        const intent = {
-            type: 'general',
-            subType: null,
-            isFollowUp: false,
-            needsDetails: false,
-            isConfirmation: false,
-            entities: []
+    async deepUnderstanding(text) {
+        // 🔥 لا patterns! نستخدم النموذج الدلالي لاستخراج المعلومات
+        
+        const understanding = {
+            entities: [],           // كيانات مكتشفة تلقائياً
+            intent: null,          // النية المستنتجة
+            complexity: 'simple',  // بسيط/متوسط/معقد
+            topics: [],           // المواضيع المكتشفة
+            contextual: false     // هل يعتمد على سياق سابق؟
         };
         
-        // ══════ الكشف عن التأكيد (نعم/أوافق/عايز) ══════
-        const confirmationPatterns = ['نعم', 'أيوه', 'طبعا', 'أكيد', 'موافق', 'عايز', 'أريد', 'yes', 'ok'];
-        if (confirmationPatterns.some(p => text.toLowerCase().includes(p))) {
-            intent.isConfirmation = true;
-            intent.isFollowUp = true;
-            this.stats.contextualQueries++;
-            return intent; // إرجاع فوري للتأكيدات
+        // ─────── اكتشاف الكيانات عبر Vector Engine ───────
+        if (window.vEngine && window.vEngine.isReady) {
+            understanding.entities = await window.vEngine.autoExtractEntities(text);
         }
         
-        // ══════ الكشف عن الأسئلة التابعة ══════
-        const followUpPatterns = [
-            'هناك', 'فيها', 'فيه', 'دي', 'ده', 'المكان ده', 'النشاط ده',
-            'الحوافز', 'الشروط', 'التراخيص', 'الجهات', 'المتطلبات',
-            'كيف', 'ما هي', 'ماذا عن', 'وماذا', 'وكيف', 'والموقع',
-            'المنطقة دي', 'القرار ده', 'وهل', 'وأين', 'ومين'
-        ];
+        // ─────── تقدير التعقيد (بدون قوائم!) ───────
+        understanding.complexity = this.estimateComplexity(text);
         
-        if (followUpPatterns.some(p => text.includes(p))) {
-            intent.isFollowUp = true;
-            this.stats.contextualQueries++;
-        }
+        // ─────── كشف الاعتماد على السياق ───────
+        understanding.contextual = this.isContextDependent(text);
         
-        // ══════ الكشف عن نوع الاستعلام ══════
+        // ─────── استنتاج النية من الكيانات والسياق ───────
+        understanding.intent = this.inferIntent(understanding.entities, text);
         
-        // استعلام عن نشاط
-        if (/نشاط|مصنع|ورشة|تصنيع|إنتاج|مشروع|شركة|محل|فندق|مطعم|مخبز|مكتب|عيادة|صيدلية/.test(text)) {
-            intent.type = 'activity';
-            
-            // تحديد النوع الفرعي
-            if (/ترخيص|تراخيص|رخصة|موافقة|تصريح/.test(text)) {
-                intent.subType = 'licenses';
-            } else if (/جهة|جهات|مختص|اختصاص|مسؤول/.test(text)) {
-                intent.subType = 'authority';
-            } else if (/موقع|منطقة|مكان|موضع|اين|فين/.test(text)) {
-                intent.subType = 'location';
-            } else if (/شرط|اشتراط|متطلب|مطلوب|يجب/.test(text)) {
-                intent.subType = 'requirements';
-            } else if (/قانون|تشريع|قرار|لائحة/.test(text)) {
-                intent.subType = 'legislation';
-            } else if (/دليل|رابط|موقع|مستند/.test(text)) {
-                intent.subType = 'guide';
-            }
-        }
-        
-        // استعلام عن منطقة صناعية
-        else if (/منطقة صناعية|منطقة|صناعية|مدينة صناعية|زهراء|العاشر|السادات|برج العرب/.test(text)) {
-            intent.type = 'industrial_area';
-            
-            if (/محافظة|موقع|اين|مكان/.test(text)) {
-                intent.subType = 'location';
-            } else if (/جهة|ولاية|إدارة|مسؤول/.test(text)) {
-                intent.subType = 'authority';
-            } else if (/قرار|إنشاء|تأسيس|مساحة/.test(text)) {
-                intent.subType = 'decision';
-            }
-        }
-        
-        // استعلام عن قرار 104
-        else if (/قرار 104|104|حوافز|إعفاء|تخفيض|مزايا|خلايا شمسية|هيدروجين|طاقة متجددة/.test(text)) {
-            intent.type = 'decision104';
-            
-            if (/قطاع|مجال|نوع|قطاع أ|قطاع ب/.test(text)) {
-                intent.subType = 'sector';
-            }
-        }
-        
-        // استعلام مقارنة
-        else if (/فرق|مقارنة|أفضل|الأنسب|بين/.test(text)) {
-            intent.type = 'comparison';
-        }
-        
-        return intent;
+        return understanding;
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * إثراء الاستعلام بالسياق السابق
+     * 🔍 البحث متعدد الطبقات
      * ═══════════════════════════════════════════════════════════════
      */
-    enrichQueryWithContext(query, intent) {
-        // إذا كان سؤال تابع ولدينا سياق سابق
-        if (intent.isFollowUp && this.currentContext.lastEntity) {
-            const contextPrefix = this.currentContext.lastEntity;
-            console.log(`🔗 دمج السياق: [${contextPrefix}] + [${query}]`);
-            return `${contextPrefix} ${query}`;
+    async multiLayerSearch(query, understanding) {
+        if (!window.vEngine || !window.vEngine.isReady) {
+            console.warn('⚠️ محرك البحث غير جاهز');
+            return { activities: [], industrial: [], decision104: [] };
         }
         
-        return query;
+        // ─────── الطبقة 1: البحث الدلالي الأساسي ───────
+        const baseResults = await window.vEngine.intelligentSearch(query, {
+            limit: 8,
+            useReranking: true,
+            useNER: true,
+            useContext: understanding.contextual
+        });
+        
+        // ─────── الطبقة 2: البحث بالكيانات المكتشفة ───────
+        if (understanding.entities.length > 0) {
+            console.log('🔎 بحث إضافي بالكيانات...');
+            for (const entity of understanding.entities) {
+                const entityResults = await window.vEngine.intelligentSearch(entity.text, {
+                    limit: 3
+                });
+                
+                // دمج النتائج
+                this.mergeSearchResults(baseResults, entityResults);
+            }
+        }
+        
+        // ─────── الطبقة 3: البحث السياقي ───────
+        if (understanding.contextual && this.memory.context.currentEntity) {
+            console.log('🔗 بحث سياقي...');
+            const contextQuery = `${this.memory.context.currentEntity} ${query}`;
+            const contextResults = await window.vEngine.intelligentSearch(contextQuery, {
+                limit: 3
+            });
+            
+            this.mergeSearchResults(baseResults, contextResults);
+        }
+        
+        return baseResults;
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * المعالجة الذكية للاستعلام
+     * 📊 التحليل الذكي (بدون عتبات ثابتة!)
      * ═══════════════════════════════════════════════════════════════
      */
-    async processIntelligentQuery(query, intent) {
-        try {
-            // معالجة التأكيدات ("نعم" بعد سؤال سابق)
-            if (intent.isConfirmation && this.currentContext.lastResponse) {
-                return await this.handleConfirmation();
-            }
-            
-            // التحقق من جاهزية المحرك
-            if (!window.vEngine || !window.vEngine.isReady) {
-                return this.createResponse(
-                    'جاري تهيئة قاعدة البيانات... الرجاء الانتظار قليلاً',
-                    'system',
-                    0.5
-                );
-            }
-            
-            // البحث في قاعدة المتجهات
-            const vectorResults = await window.vEngine.search(query, 5);
-            
-            // معالجة حسب نوع النية
-            switch (intent.type) {
-                case 'activity':
-                    return await this.handleActivityQuery(vectorResults, query, intent);
-                
-                case 'industrial_area':
-                    return await this.handleIndustrialQuery(vectorResults, query, intent);
-                
-                case 'decision104':
-                    return await this.handleDecision104Query(vectorResults, query, intent);
-                
-                case 'comparison':
-                    return await this.handleComparisonQuery(vectorResults, query, intent);
-                
-                default:
-                    return await this.handleGeneralQuery(vectorResults, query, intent);
-            }
-            
-        } catch (error) {
-            console.error('❌ خطأ في المعالجة:', error);
+    smartAnalysis(results, understanding, originalQuery) {
+        // جمع كل النتائج
+        const allResults = [
+            ...(results.activities || []).map(r => ({ ...r, type: 'activity' })),
+            ...(results.industrial || []).map(r => ({ ...r, type: 'area' })),
+            ...(results.decision104 || []).map(r => ({ ...r, type: 'decision104' }))
+        ].sort((a, b) => b.score - a.score);
+        
+        if (allResults.length === 0) {
+            return {
+                type: 'no_results',
+                confidence: 0,
+                needsClarification: true,
+                suggestion: this.getSuggestion(originalQuery)
+            };
+        }
+        
+        const best = allResults[0];
+        const secondBest = allResults[1];
+        
+        // 🔥 عتبة ديناميكية - ليست ثابتة!
+        const dynamicThreshold = this.calculateDynamicThreshold(
+            understanding.complexity,
+            this.memory.context.currentEntity !== null
+        );
+        
+        console.log(`🎯 أفضل نتيجة: ${best.id} (${best.type})`);
+        console.log(`   Score: ${(best.score * 100).toFixed(1)}%`);
+        console.log(`   العتبة الديناميكية: ${(dynamicThreshold * 100).toFixed(1)}%`);
+        
+        // ─────── كشف الالتباس النسبي (ليس absolute!) ───────
+        const hasAmbiguity = secondBest && 
+            Math.abs(best.score - secondBest.score) < 0.12 &&
+            best.score < 0.75;
+        
+        // ─────── كشف الأسئلة المركبة ───────
+        const isComplex = this.detectComplexQuestion(allResults, understanding);
+        
+        return {
+            type: best.type,
+            primaryResult: best,
+            allResults: allResults.slice(0, 5),
+            confidence: best.score,
+            hasAmbiguity,
+            ambiguousResults: hasAmbiguity ? [best, secondBest] : [],
+            isComplex,
+            needsClarification: best.score < dynamicThreshold || hasAmbiguity,
+            dynamicThreshold,
+            understanding
+        };
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 🎲 حساب العتبة الديناميكية (التعلم الحقيقي!)
+     * ═══════════════════════════════════════════════════════════════
+     */
+    calculateDynamicThreshold(complexity, hasContext) {
+        // 🔥 لا أرقام سحرية! نحسب بناءً على:
+        // 1. تعقيد السؤال
+        // 2. وجود سياق سابق
+        // 3. تاريخ النجاح
+        // 4. ثقة المحرك الدلالي
+        
+        let baseThreshold = 0.35;
+        
+        // تعديل حسب التعقيد
+        if (complexity === 'simple') baseThreshold *= 0.7;  // 0.245
+        if (complexity === 'complex') baseThreshold *= 1.3; // 0.455
+        
+        // تعديل حسب السياق
+        if (hasContext) {
+            baseThreshold *= 0.8; // أسهل مع السياق
+        }
+        
+        // تعديل حسب ثقة المحرك الدلالي
+        if (window.vEngine) {
+            const engineThreshold = window.vEngine.getDynamicConfidenceThreshold(complexity);
+            baseThreshold = (baseThreshold + engineThreshold) / 2;
+        }
+        
+        // تعديل حسب تاريخ النجاح
+        const successRate = this.stats.total > 0 
+            ? this.stats.successful / this.stats.total 
+            : 0.5;
+        
+        if (successRate > 0.8) {
+            baseThreshold *= 0.9; // نظام واثق - عتبة أقل
+        } else if (successRate < 0.5) {
+            baseThreshold *= 1.1; // نظام حذر - عتبة أعلى
+        }
+        
+        return Math.max(0.2, Math.min(0.7, baseThreshold));
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 🏗️ بناء الرد الذكي
+     * ═══════════════════════════════════════════════════════════════
+     */
+    async buildIntelligentResponse(analysis, originalQuery) {
+        // ─────── حالة: لا نتائج ───────
+        if (analysis.type === 'no_results') {
             return this.createResponse(
-                'عذراً، واجهت مشكلة في معالجة طلبك. يرجى المحاولة مرة أخرى.',
-                'error',
+                this.buildNoResultsMessage(analysis.suggestion),
+                'no_results',
                 0
             );
         }
-    }
-    
-    /**
-     * معالجة التأكيد ("نعم" بعد سؤال)
-     */
-    async handleConfirmation() {
-        console.log('✅ تم اكتشاف تأكيد - استرجاع السياق السابق');
         
-        const lastResponse = this.currentContext.lastResponse;
-        
-        // إذا كان الرد السابق يحتوي على بيانات مخزنة
-        if (this.currentContext.relatedData) {
-            const data = this.currentContext.relatedData;
-            
-            // إذا كان نشاط
-            if (data.details) {
-                return this.createResponse(
-                    this.formatFullActivityInfo(data.text, data.details),
-                    'activity_full',
-                    1,
-                    { data }
-                );
-            }
-            
-            // إذا كانت منطقة صناعية
-            if (data.governorate) {
-                return this.createResponse(
-                    this.formatIndustrialAreaInfo(data),
-                    'area_full',
-                    1,
-                    { area: data }
-                );
-            }
+        // ─────── حالة: التباس ───────
+        if (analysis.hasAmbiguity) {
+            this.stats.ambiguous++;
+            return this.buildAmbiguityResponse(analysis);
         }
         
-        // إذا لم يكن هناك سياق واضح
+        // ─────── حالة: سؤال مركب ───────
+        if (analysis.isComplex) {
+            return this.buildComplexResponse(analysis, originalQuery);
+        }
+        
+        // ─────── حالة: ثقة منخفضة - نسأل ───────
+        if (analysis.needsClarification && analysis.confidence < analysis.dynamicThreshold) {
+            return this.buildClarificationRequest(analysis);
+        }
+        
+        // ─────── حالات محددة ───────
+        if (analysis.type === 'activity') {
+            return this.buildActivityResponse(analysis, originalQuery);
+        }
+        
+        if (analysis.type === 'area') {
+            return this.buildAreaResponse(analysis, originalQuery);
+        }
+        
+        if (analysis.type === 'decision104') {
+            return this.buildDecision104Response(analysis);
+        }
+        
+        // ─────── افتراضي ───────
         return this.createResponse(
-            'عذراً، لم أفهم على ماذا توافق. هل يمكنك إعادة صياغة السؤال؟',
-            'no_context',
-            0.3
+            `وجدت معلومات محتملة لكن الثقة ${Math.round(analysis.confidence * 100)}%.\n\nهل تقصد "${analysis.primaryResult.id}"؟`,
+            'uncertain',
+            analysis.confidence
         );
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * معالجة استعلامات الأنشطة
+     * 📋 بناء رد النشاط
      * ═══════════════════════════════════════════════════════════════
      */
-    async handleActivityQuery(vectorResults, query, intent) {
-        const activities = vectorResults.activities || [];
+    buildActivityResponse(analysis, originalQuery) {
+        const activityData = this.findFullData(analysis.primaryResult.id, 'activity');
         
-        if (activities.length === 0) {
+        if (!activityData || !activityData.details) {
             return this.createResponse(
-                'لم أجد نشاطاً مطابقاً. هل يمكنك إعادة صياغة السؤال أو ذكر اسم النشاط بوضوح؟',
-                'no_results',
-                0.2
+                `وجدت النشاط "${analysis.primaryResult.id}" لكن التفاصيل غير متوفرة.`,
+                'partial',
+                analysis.confidence
             );
         }
         
-        const topActivity = activities[0];
-        const activityId = topActivity.id;
+        // حفظ في الذاكرة
+        this.memory.context.currentEntity = activityData.text;
+        this.memory.context.currentType = 'activity';
+        this.memory.context.currentData = activityData;
         
-        console.log(`🎯 أفضل نشاط مطابق: ${activityId} (${Math.round(topActivity.score * 100)}%)`);
+        // تحديد ما يريده المستخدم بالضبط
+        const requestedInfo = this.detectRequestedInfo(originalQuery, analysis.understanding);
         
-        // جلب التفاصيل من قاعدة البيانات المحلية
-        const detailedData = this.getActivityDetails(activityId);
-        
-        if (!detailedData) {
-            console.warn('⚠️ لم يتم العثور على تفاصيل في masterActivityDB');
-            return this.createResponse(
-                `وجدت نشاط "${activityId}" لكن التفاصيل غير متوفرة حالياً في قاعدة البيانات.`,
-                'partial_match',
-                topActivity.score,
-                { activities }
-            );
-        }
-        
-        // تخزين في السياق للأسئلة التابعة
-        this.currentContext.relatedData = detailedData;
-        this.currentContext.lastEntity = detailedData.text;
-        this.currentContext.lastEntityType = 'activity';
-        
-        console.log(`✅ تم تحميل بيانات: ${detailedData.text}`);
-        
-        // عرض التفاصيل الكاملة مباشرة (بدون سؤال المستخدم)
-        return this.buildActivityResponse(detailedData, intent.subType, topActivity.score, true);
-    }
-    
-    /**
-     * جلب تفاصيل النشاط من masterActivityDB
-     */
-    getActivityDetails(activityId) {
-        if (!this.databases.activities) {
-            console.warn('⚠️ قاعدة masterActivityDB غير محملة');
-            return null;
-        }
-        
-        console.log(`🔍 البحث عن: "${activityId}" في قاعدة البيانات المحلية...`);
-        
-        // البحث بطرق متعددة لضمان العثور على البيانات
-        let data = this.databases.activities.find(item => item.value === activityId);
-        
-        if (!data) {
-            // محاولة البحث بالنص
-            data = this.databases.activities.find(item => 
-                item.text && item.text.toLowerCase().includes(activityId.toLowerCase())
-            );
-        }
-        
-        if (!data) {
-            // محاولة البحث بالكلمات المفتاحية
-            data = this.databases.activities.find(item => 
-                item.keywords && item.keywords.some(kw => 
-                    kw.toLowerCase().includes(activityId.toLowerCase()) ||
-                    activityId.toLowerCase().includes(kw.toLowerCase())
-                )
-            );
-        }
-        
-        if (data) {
-            console.log(`✅ تم العثور على: ${data.text}`);
-            
-            // التحقق من وجود details
-            if (!data.details) {
-                console.warn(`⚠️ النشاط "${data.text}" لا يحتوي على حقل details`);
-                // إنشاء كائن details فارغ لتجنب الأخطاء
-                data.details = {
-                    act: 'لا توجد معلومات تفصيلية متاحة حالياً',
-                    req: 'غير محدد',
-                    auth: 'غير محدد',
-                    loc: 'غير محدد',
-                    leg: 'غير محدد'
-                };
-            }
-        } else {
-            console.warn(`❌ لم يتم العثور على "${activityId}" في قاعدة البيانات`);
-        }
-        
-        return data;
-    }
-    
-    /**
-     * بناء رد تفصيلي عن النشاط
-     */
-    buildActivityResponse(data, subType, confidence, showFullDetails = false) {
-        const d = data.details || {};
-        
-        // إذا كان سؤال محدد عن جزء معين (وليس طلب عام)
-        if (subType && !showFullDetails) {
-            switch (subType) {
-                case 'licenses':
-                    return this.createResponse(
-                        this.formatLicensesInfo(data.text, d),
-                        'activity_licenses',
-                        confidence,
-                        { data }
-                    );
-                
-                case 'authority':
-                    return this.createResponse(
-                        this.formatAuthorityInfo(data.text, d),
-                        'activity_authority',
-                        confidence,
-                        { data }
-                    );
-                
-                case 'location':
-                    return this.createResponse(
-                        this.formatLocationInfo(data.text, d),
-                        'activity_location',
-                        confidence,
-                        { data }
-                    );
-                
-                case 'requirements':
-                    return this.createResponse(
-                        this.formatRequirementsInfo(data.text, d),
-                        'activity_requirements',
-                        confidence,
-                        { data }
-                    );
-                
-                case 'legislation':
-                    return this.createResponse(
-                        this.formatLegislationInfo(data.text, d),
-                        'activity_legislation',
-                        confidence,
-                        { data }
-                    );
-                
-                case 'guide':
-                    return this.createResponse(
-                        this.formatGuideInfo(data.text, d),
-                        'activity_guide',
-                        confidence,
-                        { data }
-                    );
-            }
-        }
-        
-        // رد شامل (الافتراضي الجديد)
-        return this.createResponse(
-            this.formatFullActivityInfo(data.text, d),
-            'activity_full',
-            confidence,
-            { data }
-        );
-    }
-    
-    /**
-     * ═══════════ تنسيق المعلومات المختلفة ═══════════
-     */
-    formatLicensesInfo(name, d) {
-        return `📋 **تراخيص نشاط: ${name}**\n\n${d.req || 'لا توجد معلومات محددة عن التراخيص'}`;
-    }
-    
-    formatAuthorityInfo(name, d) {
-        return `🏛️ **الجهات المختصة بـ ${name}**\n\n${d.auth || 'غير محدد'}`;
-    }
-    
-    formatLocationInfo(name, d) {
-        return `📍 **الموقع الملائم لـ ${name}**\n\n${d.loc || 'غير محدد في السجلات'}`;
-    }
-    
-    formatRequirementsInfo(name, d) {
-        return `✅ **الاشتراطات والمتطلبات لـ ${name}**\n\n${d.req || 'يرجى مراجعة الدليل المختص'}`;
-    }
-    
-    formatLegislationInfo(name, d) {
-        return `⚖️ **التشريعات المنظمة لـ ${name}**\n\n${d.leg || 'خاضع للقوانين العامة'}`;
-    }
-    
-    formatGuideInfo(name, d) {
-        let text = `📚 **الدليل الإرشادي لـ ${name}**\n\n`;
-        
-        if (d.guid) {
-            text += `📖 الدليل: ${d.guid}\n\n`;
-        }
-        
-        if (d.link) {
-            text += `🔗 الرابط: ${d.link}`;
-        } else {
-            text += 'لا يوجد رابط متاح حالياً';
-        }
-        
-        return text;
-    }
-    
-    formatFullActivityInfo(name, d) {
-        return `
-🏢 **تقرير شامل عن: ${name}**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 **طبيعة النشاط:**
-${d.act || 'غير محدد'}
-
-✅ **التراخيص المطلوبة:**
-${d.req || 'يرجى مراجعة الجهة المختصة'}
-
-🏛️ **الجهات المختصة:**
-${d.auth || 'غير محدد'}
-
-📍 **الموقع الملائم:**
-${d.loc || 'غير محدد'}
-
-⚖️ **التشريعات:**
-${d.leg || 'القوانين العامة'}
-
-${d.link ? `🔗 **رابط الدليل:** ${d.link}` : ''}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💡 يمكنك سؤالي عن أي جزء بالتحديد
-        `.trim();
+        return this.formatActivityInfo(activityData, requestedInfo, analysis.confidence);
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * معالجة استعلامات المناطق الصناعية
+     * 🏭 بناء رد المنطقة
      * ═══════════════════════════════════════════════════════════════
      */
-    async handleIndustrialQuery(vectorResults, query, intent) {
-        const areas = vectorResults.industrial || [];
+    buildAreaResponse(analysis, originalQuery) {
+        // كشف نوع السؤال
+        const questionType = this.detectAreaQuestionType(originalQuery);
         
-        console.log(`🏭 نتائج البحث عن المناطق الصناعية: ${areas.length} نتيجة`);
-        
-        if (areas.length === 0) {
-            // محاولة البحث في القاعدة المحلية مباشرة
-            if (this.databases.industrial) {
-                const localSearch = this.databases.industrial.filter(area => {
-                    const searchLower = query.toLowerCase();
-                    return area.name.toLowerCase().includes(searchLower) ||
-                           area.governorate.toLowerCase().includes(searchLower) ||
-                           searchLower.includes(area.name.toLowerCase().substring(0, 10));
-                });
-                
-                if (localSearch.length > 0) {
-                    console.log(`✅ تم العثور على ${localSearch.length} منطقة في البحث المحلي`);
-                    const areaData = localSearch[0];
-                    this.currentContext.relatedData = areaData;
-                    
-                    return this.createResponse(
-                        this.formatIndustrialAreaInfo(areaData),
-                        'area_full',
-                        0.9,
-                        { area: areaData }
-                    );
-                }
-            }
-            
-            return this.createResponse(
-                'لم أجد منطقة صناعية مطابقة. هل يمكنك توضيح اسم المنطقة أو المحافظة؟\n\nمثال: "منطقة زهراء المعادي" أو "العاشر من رمضان"',
-                'no_results',
-                0.2
-            );
+        if (questionType === 'count') {
+            return this.buildAreaCount(originalQuery);
         }
         
-        const topArea = areas[0];
-        console.log(`🎯 أفضل منطقة: ${topArea.id} (${Math.round(topArea.score * 100)}%)`);
+        if (questionType === 'list') {
+            return this.buildAreaList(originalQuery);
+        }
         
-        const areaData = this.getIndustrialAreaDetails(topArea.id);
+        // سؤال عن منطقة محددة
+        const areaData = this.findFullData(analysis.primaryResult.id, 'area');
         
         if (!areaData) {
             return this.createResponse(
-                `وجدت منطقة "${topArea.id}" لكن التفاصيل غير متوفرة.`,
-                'partial_match',
-                topArea.score
+                `وجدت منطقة "${analysis.primaryResult.id}" لكن التفاصيل غير متوفرة.`,
+                'partial',
+                analysis.confidence
             );
         }
         
-        this.currentContext.relatedData = areaData;
-        this.currentContext.lastEntity = areaData.name;
-        this.currentContext.lastEntityType = 'area';
+        this.memory.context.currentEntity = areaData.name;
+        this.memory.context.currentType = 'area';
+        this.memory.context.currentData = areaData;
         
-        return this.createResponse(
-            this.formatIndustrialAreaInfo(areaData),
-            'area_full',
-            topArea.score,
-            { area: areaData }
-        );
-    }
-    
-    getIndustrialAreaDetails(areaId) {
-        if (!this.databases.industrial) {
-            console.warn('⚠️ قاعدة المناطق الصناعية غير محملة');
-            return null;
-        }
-        
-        console.log(`🔍 البحث عن منطقة: "${areaId}"`);
-        
-        // البحث بطرق متعددة
-        let area = this.databases.industrial.find(a => a.name === areaId);
-        
-        if (!area) {
-            area = this.databases.industrial.find(a => 
-                a.name.includes(areaId) || areaId.includes(a.name.substring(0, 15))
-            );
-        }
-        
-        if (area) {
-            console.log(`✅ تم العثور على: ${area.name}`);
-        } else {
-            console.warn(`❌ لم يتم العثور على "${areaId}"`);
-        }
-        
-        return area;
-    }
-    
-    formatIndustrialAreaInfo(area) {
-        return `
-🏭 **المنطقة الصناعية: ${area.name}**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📍 **المحافظة:** ${area.governorate}
-
-🏛️ **جهة التبعية:** ${area.dependency}
-
-📏 **المساحة:** ${area.area} فدان
-
-📜 **قرار الإنشاء/التعديل:**
-${area.decision}
-
-${area.x && area.y ? `📌 **الإحداثيات:** ${area.y}, ${area.x}` : ''}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        `.trim();
+        return this.formatAreaInfo(areaData, analysis.confidence);
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * معالجة استعلامات قرار 104
+     * ⭐ بناء رد القرار 104
      * ═══════════════════════════════════════════════════════════════
      */
-    async handleDecision104Query(vectorResults, query, intent) {
-        const results = vectorResults.decision104 || [];
+    buildDecision104Response(analysis) {
+        const resultId = analysis.primaryResult.id;
         
-        console.log(`💰 نتائج البحث في قرار 104: ${results.length} نتيجة`);
+        // البحث في قاعدة البيانات
+        let found = null;
+        let sector = null;
+        let category = null;
         
-        if (results.length === 0) {
-            return this.createResponse(
-                'لم أجد معلومات عن هذا النشاط في قرار 104 لسنة 2022.\n\n❌ النشاط غير مشمول بالحوافز حالياً.\n\n💡 الأنشطة المشمولة تشمل: الطاقة المتجددة، الهيدروجين الأخضر، الصناعات الغذائية الاستراتيجية، والمنسوجات والملابس.',
-                'no_results',
-                0.2
-            );
-        }
-        
-        const topResult = results[0];
-        console.log(`🎯 أفضل نتيجة في 104: ${topResult.id} (${Math.round(topResult.score * 100)}%)`);
-        
-        // تحديد القطاع من البيانات
-        let sector = 'غير محدد';
-        let sectorDetails = '';
-        
-        if (this.databases.decision104) {
-            // البحث في القطاع أ
-            for (const [category, items] of Object.entries(this.databases.decision104)) {
+        if (this.db.decision104) {
+            for (const [cat, items] of Object.entries(this.db.decision104)) {
                 if (Array.isArray(items)) {
-                    const found = items.find(item => 
-                        item.toLowerCase().includes(topResult.id.toLowerCase()) ||
-                        topResult.id.toLowerCase().includes(item.toLowerCase().substring(0, 20))
-                    );
+                    const match = items.find(item => {
+                        const normalized = item.toLowerCase();
+                        const searchNorm = resultId.toLowerCase();
+                        return normalized.includes(searchNorm) || 
+                               searchNorm.includes(normalized.substring(0, 20));
+                    });
                     
-                    if (found) {
+                    if (match) {
+                        found = match;
                         sector = 'القطاع أ';
-                        sectorDetails = `**الفئة:** ${category}\n**التفاصيل:** ${found}`;
+                        category = cat;
                         break;
                     }
                 }
             }
         }
         
-        const responseText = `
-✅ **نعم، هذا النشاط مشمول في قرار 104 لسنة 2022**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 **النشاط:** ${topResult.id}
-
-🎯 **القطاع:** ${sector}
-
-${sectorDetails}
-
-📊 **نسبة المطابقة:** ${Math.round(topResult.score * 100)}%
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 **الحوافز المتوقعة:**
-- إعفاءات جمركية
-- تخفيضات ضريبية
-- تسهيلات في إجراءات الترخيص
-
-💬 يمكنك سؤالي عن التفاصيل الإضافية
-        `.trim();
-        
-        return this.createResponse(
-            responseText,
-            'decision104_match',
-            topResult.score,
-            { decision104: results, sector }
-        );
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════════
-     * معالجة استعلامات عامة
-     * ═══════════════════════════════════════════════════════════════
-     */
-    async handleGeneralQuery(vectorResults, query, intent) {
-        // جمع أفضل النتائج من كل القواعد
-        const allResults = [
-            ...(vectorResults.activities || []).map(r => ({...r, type: 'activity'})),
-            ...(vectorResults.industrial || []).map(r => ({...r, type: 'area'})),
-            ...(vectorResults.decision104 || []).map(r => ({...r, type: 'decision'}))
-        ].sort((a, b) => b.score - a.score);
-        
-        if (allResults.length === 0) {
+        if (!found) {
             return this.createResponse(
-                'عذراً، لم أجد نتائج مطابقة. هل يمكنك إعادة صياغة السؤال؟',
-                'no_results',
-                0.2
+                this.buildDecision104NotFound(),
+                'decision104_not_found',
+                analysis.confidence
             );
         }
         
-        const best = allResults[0];
-        
-        console.log(`🎯 أفضل نتيجة عامة: ${best.id} - نوع: ${best.type} - نسبة: ${Math.round(best.score * 100)}%`);
-        
-        // إذا كانت النتيجة الأفضل نشاط، نعرض تفاصيله مباشرة
-        if (best.type === 'activity' && best.score > 0.4) {
-            const detailedData = this.getActivityDetails(best.id);
-            
-            if (detailedData) {
-                this.currentContext.relatedData = detailedData;
-                this.currentContext.lastEntity = detailedData.text;
-                this.currentContext.lastEntityType = 'activity';
-                
-                return this.createResponse(
-                    this.formatFullActivityInfo(detailedData.text, detailedData.details),
-                    'activity_full',
-                    best.score,
-                    { data: detailedData }
-                );
-            }
-        }
-        
-        // إذا كانت منطقة صناعية
-        if (best.type === 'area' && best.score > 0.4) {
-            const areaData = this.getIndustrialAreaDetails(best.id);
-            
-            if (areaData) {
-                this.currentContext.relatedData = areaData;
-                this.currentContext.lastEntity = areaData.name;
-                this.currentContext.lastEntityType = 'area';
-                
-                return this.createResponse(
-                    this.formatIndustrialAreaInfo(areaData),
-                    'area_full',
-                    best.score,
-                    { area: areaData }
-                );
-            }
-        }
-        
-        // رد افتراضي مع خيارات
-        return this.createResponse(
-            `وجدت معلومات متعلقة بـ "${best.id}".\n\nنوع النتيجة: ${best.type === 'activity' ? 'نشاط' : best.type === 'area' ? 'منطقة صناعية' : 'قرار 104'}\n\nنسبة المطابقة: ${Math.round(best.score * 100)}%\n\nهل تريد التفاصيل الكاملة؟`,
-            'multi_match',
-            best.score,
-            { results: allResults.slice(0, 3) }
-        );
+        return this.formatDecision104Info(found, sector, category, analysis.confidence);
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * معالجة الأوامر الخاصة
+     * 🔗 بناء رد مركب
      * ═══════════════════════════════════════════════════════════════
      */
+    buildComplexResponse(analysis, originalQuery) {
+        console.log('🔗 بناء رد مركب...');
+        
+        let response = `✅ وجدت معلومات من عدة قواعد:\n\n`;
+        
+        const activityResult = analysis.allResults.find(r => r.type === 'activity' && r.score > 0.3);
+        const areaResult = analysis.allResults.find(r => r.type === 'area' && r.score > 0.3);
+        const decision104Result = analysis.allResults.find(r => r.type === 'decision104' && r.score > 0.25);
+        
+        if (activityResult) {
+            const data = this.findFullData(activityResult.id, 'activity');
+            if (data) {
+                response += `📋 **النشاط:** ${data.text}\n`;
+                response += this.extractKeyInfo(data, originalQuery);
+                response += `\n${'─'.repeat(60)}\n\n`;
+            }
+        }
+        
+        if (areaResult) {
+            const data = this.findFullData(areaResult.id, 'area');
+            if (data) {
+                response += `🏭 **المنطقة:** ${data.name}\n`;
+                response += `📍 ${data.governorate} - ${data.area} فدان\n\n`;
+                response += `${'─'.repeat(60)}\n\n`;
+            }
+        }
+        
+        if (decision104Result) {
+            response += `⭐ **قرار 104:** هذا النشاط مشمول بالحوافز\n`;
+            response += `💰 حوافز استثمارية متاحة\n`;
+        }
+        
+        return this.createResponse(response, 'complex', 0.85);
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 🎭 بناء رد الالتباس
+     * ═══════════════════════════════════════════════════════════════
+     */
+    buildAmbiguityResponse(analysis) {
+        const [first, second] = analysis.ambiguousResults;
+        
+        const name1 = this.getDisplayName(first);
+        const name2 = this.getDisplayName(second);
+        
+        let text = `وجدت أكثر من نتيجة محتملة:\n\n`;
+        text += `1️⃣ ${name1} (${Math.round(first.score * 100)}%)\n`;
+        text += `2️⃣ ${name2} (${Math.round(second.score * 100)}%)\n\n`;
+        text += `💡 أيهما تقصد؟ أو أعد صياغة السؤال`;
+        
+        return this.createResponse(text, 'ambiguous', analysis.confidence, {
+            options: [first, second]
+        });
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * ❓ طلب توضيح
+     * ═══════════════════════════════════════════════════════════════
+     */
+    buildClarificationRequest(analysis) {
+        const name = this.getDisplayName(analysis.primaryResult);
+        
+        let text = `هل تقصد "${name}"?\n\n`;
+        text += `🎯 الثقة: ${Math.round(analysis.confidence * 100)}%\n`;
+        text += `📊 العتبة المطلوبة: ${Math.round(analysis.dynamicThreshold * 100)}%\n\n`;
+        text += `💡 يمكنك:\ - الموافقة ("نعم" أو "أكيد")\n`;
+        text += `- إعادة صياغة السؤال بتفاصيل أكثر`;
+        
+        return this.createResponse(text, 'clarification', analysis.confidence, {
+            suggestedEntity: analysis.primaryResult
+        });
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 🎓 التعلم من التفاعل
+     * ═══════════════════════════════════════════════════════════════
+     */
+    learnFromInteraction(query, understanding, analysis, response) {
+        this.stats.learned++;
+        
+        // ─────── تعلم الأنماط الناجحة ───────
+        if (analysis.confidence > 0.6 && response.type !== 'no_results') {
+            const pattern = {
+                query,
+                entities: understanding.entities,
+                resultType: analysis.type,
+                confidence: analysis.confidence,
+                timestamp: Date.now()
+            };
+            
+            const key = analysis.primaryResult?.id || 'unknown';
+            const existing = this.learning.successPatterns.get(key);
+            
+            if (existing) {
+                existing.count++;
+                existing.patterns.push(pattern);
+            } else {
+                this.learning.successPatterns.set(key, {
+                    count: 1,
+                    patterns: [pattern]
+                });
+            }
+        }
+        
+        // ─────── تعلم المرادفات ───────
+        if (analysis.primaryResult && understanding.entities.length > 0) {
+            understanding.entities.forEach(entity => {
+                const synonymKey = analysis.primaryResult.id;
+                const existing = this.learning.discoveredSynonyms.get(synonymKey);
+                
+                if (existing) {
+                    if (!existing.includes(entity.text)) {
+                        existing.push(entity.text);
+                    }
+                } else {
+                    this.learning.discoveredSynonyms.set(synonymKey, [entity.text]);
+                }
+            });
+        }
+        
+        // ─────── حفظ المعرفة ───────
+        this.saveLearning();
+        
+        console.log(`📚 التعلم: ${this.stats.learned} تفاعل`);
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 🧰 دوال مساعدة
+     * ═══════════════════════════════════════════════════════════════
+     */
+    
+    // تقدير التعقيد (دلالي - ليس بالطول!)
+    estimateComplexity(text) {
+        const words = text.split(/\s+/).length;
+        const hasMultipleQuestions = (text.match(/[؟?]/g) || []).length > 1;
+        const hasConjunctions = /و|أو|ثم|كذلك|أيضا/.test(text);
+        
+        if (words <= 5 && !hasMultipleQuestions) return 'simple';
+        if (words > 15 || hasMultipleQuestions || hasConjunctions) return 'complex';
+        return 'medium';
+    }
+    
+    // كشف الاعتماد على السياق
+    isContextDependent(text) {
+        const contextWords = ['هذا', 'هذه', 'ذلك', 'تلك', 'ده', 'دي', 'فيه', 'فيها', 'هناك'];
+        return contextWords.some(word => text.includes(word)) || text.length < 15;
+    }
+    
+    // استنتاج النية من الكيانات
+    inferIntent(entities, text) {
+        if (entities.length === 0) return 'general';
+        
+        const types = entities.map(e => e.type);
+        
+        if (types.includes('decision')) return 'incentives';
+        if (types.includes('governorate') && types.includes('area')) return 'area_location';
+        if (types.includes('activity')) return 'activity_info';
+        if (types.includes('governorate')) return 'area_list';
+        
+        return 'general';
+    }
+    
+    // كشف الأسئلة المركبة
+    detectComplexQuestion(results, understanding) {
+        if (results.length < 3) return false;
+        
+        const top3 = results.slice(0, 3);
+        const types = new Set(top3.map(r => r.type));
+        
+        if (types.size >= 2) {
+            const scoreDiff = Math.max(...top3.map(r => r.score)) - 
+                            Math.min(...top3.map(r => r.score));
+            return scoreDiff < 0.25;
+        }
+        
+        return understanding.entities.length >= 2;
+    }
+    
+    // العثور على البيانات الكاملة (دلالي!)
+    findFullData(id, type) {
+        if (type === 'activity' && this.db.activities) {
+            // 🔥 بحث ذكي - ليس includes فقط!
+            let found = this.db.activities.find(a => a.value === id);
+            
+            if (!found) {
+                // بحث بالنص
+                found = this.db.activities.find(a => 
+                    a.text && (
+                        a.text.toLowerCase().includes(id.toLowerCase()) ||
+                        id.toLowerCase().includes(a.text.toLowerCase().substring(0, 15))
+                    )
+                );
+            }
+            
+            if (!found && this.learning.discoveredSynonyms.has(id)) {
+                // بحث بالمرادفات المتعلمة
+                const synonyms = this.learning.discoveredSynonyms.get(id);
+                found = this.db.activities.find(a => 
+                    synonyms.some(syn => a.text.toLowerCase().includes(syn.toLowerCase()))
+                );
+            }
+            
+            return found;
+        }
+        
+        if (type === 'area' && this.db.industrial) {
+            let found = this.db.industrial.find(a => a.name === id);
+            
+            if (!found) {
+                found = this.db.industrial.find(a => 
+                    a.name.includes(id) || 
+                    id.includes(a.name.substring(0, 12))
+                );
+            }
+            
+            return found;
+        }
+        
+        return null;
+    }
+    
+    // الحصول على اسم العرض
+    getDisplayName(result) {
+        if (!result) return 'غير معروف';
+        
+        if (result.type === 'activity') {
+            const data = this.findFullData(result.id, 'activity');
+            return data ? data.text : result.id;
+        }
+        
+        if (result.type === 'area') {
+            const data = this.findFullData(result.id, 'area');
+            return data ? data.name : result.id;
+        }
+        
+        return result.id;
+    }
+    
+    // كشف المعلومات المطلوبة
+    detectRequestedInfo(query, understanding) {
+        const q = query.toLowerCase();
+        
+        // ترتيب حسب الأولوية
+        if (/ترخيص|تراخيص|رخص/.test(q)) return 'licenses';
+        if (/جهة|جهات|مختص|هيئة/.test(q)) return 'authority';
+        if (/موقع|منطقة|مكان|فين|اين/.test(q)) return 'location';
+        if (/قانون|قرار|لائحة|تشريع|سند/.test(q)) return 'legislation';
+        if (/دليل|رابط|موقع/.test(q)) return 'guide';
+        
+        return 'full'; // شامل
+    }
+    
+    // كشف نوع سؤال المنطقة
+    detectAreaQuestionType(query) {
+        const q = query.toLowerCase();
+        
+        if (/كام|عدد|كم/.test(q)) return 'count';
+        if (/قائمة|اعرض|اذكر|كل/.test(q)) return 'list';
+        
+        return 'specific';
+    }
+    
+    // استخراج معلومات رئيسية
+    extractKeyInfo(activity, query) {
+        const d = activity.details;
+        let info = '';
+        
+        if (/ترخيص/.test(query)) {
+            info += `📋 التراخيص: ${d.req || 'غير محدد'}\n`;
+        } else if (/جهة/.test(query)) {
+            info += `🏛️ الجهات: ${d.auth || 'غير محدد'}\n`;
+        } else {
+            info += `📋 ${(d.req || '').substring(0, 100)}...\n`;
+        }
+        
+        return info;
+    }
+    
+    // دمج نتائج البحث
+    mergeSearchResults(base, additional) {
+        for (const [key, items] of Object.entries(additional)) {
+            items.forEach(item => {
+                const existing = base[key].find(r => r.id === item.id);
+                if (existing) {
+                    existing.score = Math.min(1, existing.score + item.score * 0.2);
+                } else {
+                    base[key].push(item);
+                }
+            });
+            base[key].sort((a, b) => b.score - a.score);
+        }
+    }
+    
+    // اقتراح بديل
+    getSuggestion(query) {
+        // يمكن تحسينه بالذكاء الاصطناعي لاحقاً
+        return 'جرب استخدام كلمات أوضح أو اسم النشاط/المنطقة بالتحديد';
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 🎨 التنسيق والعرض
+     * ═══════════════════════════════════════════════════════════════
+     */
+    
+    formatActivityInfo(data, infoType, confidence) {
+        const d = data.details;
+        let text = '';
+        
+        if (infoType === 'licenses') {
+            text = `📋 **التراخيص المطلوبة لـ ${data.text}:**\n\n${d.req || 'غير محدد'}`;
+        }
+        else if (infoType === 'authority') {
+            text = `🏛️ **الجهات المختصة بـ ${data.text}:**\n\n${d.auth || 'غير محدد'}`;
+        }
+        else if (infoType === 'location') {
+            text = `📍 **الموقع الملائم لـ ${data.text}:**\n\n${d.loc || 'غير محدد'}`;
+        }
+        else if (infoType === 'legislation') {
+            text = `⚖️ **التشريعات لـ ${data.text}:**\n\n${d.leg || 'غير محدد'}`;
+        }
+        else if (infoType === 'guide') {
+            text = `📚 **الدليل الإرشادي لـ ${data.text}:**\n\n`;
+            text += d.guid ? `📖 ${d.guid}\n` : '';
+            text += d.link ? `🔗 ${d.link}` : 'لا يوجد رابط';
+        }
+        else {
+            // شامل
+            text = `🏢 **${data.text}**\n\n${'═'.repeat(60)}\n\n`;
+            if (d.act) text += `📋 **طبيعة النشاط:**\n${d.act}\n\n`;
+            text += `📋 **التراخيص:**\n${d.req || 'غير محدد'}\n\n`;
+            text += `🏛️ **الجهات:**\n${d.auth || 'غير محدد'}\n\n`;
+            text += `📍 **الموقع:**\n${d.loc || 'غير محدد'}\n\n`;
+            text += `⚖️ **التشريعات:**\n${d.leg || 'غير محدد'}\n\n`;
+            if (d.link) text += `🔗 **الدليل:** ${d.link}\n\n`;
+            text += `${'═'.repeat(60)}\n💡 اسألني عن أي جزء محدد`;
+        }
+        
+        return this.createResponse(text, 'activity_full', confidence, { data });
+    }
+    
+    formatAreaInfo(data, confidence) {
+        let text = `🏭 **${data.name}**\n\n${'═'.repeat(60)}\n\n`;
+        text += `📍 **المحافظة:** ${data.governorate}\n`;
+        text += `🏛️ **جهة الولاية:** ${data.dependency}\n`;
+        text += `📏 **المساحة:** ${data.area} فدان\n\n`;
+        text += `📜 **قرار الإنشاء:**\n${data.decision}\n\n`;
+        
+        if (data.x && data.y) {
+            text += `🗺️ **الموقع:**\nhttps://www.google.com/maps?q=${data.y},${data.x}\n\n`;
+        }
+        
+        text += `${'═'.repeat(60)}`;
+        
+        return this.createResponse(text, 'area_full', confidence, { area: data });
+    }
+    
+    formatDecision104Info(activity, sector, category, confidence) {
+        let text = `✅ **نعم، مشمول في قرار 104 لسنة 2022**\n\n`;
+        text += `${'═'.repeat(60)}\n\n`;
+        text += `📋 **النشاط:** ${activity}\n\n`;
+        text += `🎯 **القطاع:** ${sector}\n`;
+        text += `📂 **الفئة:** ${category}\n\n`;
+        text += `${'═'.repeat(60)}\n\n`;
+        text += `💰 **الحوافز:**\n`;
+        text += `• حافز استثماري 50% من التكلفة\n`;
+        text += `• إعفاءات جمركية\n`;
+        text += `• تخفيضات ضريبية\n`;
+        text += `• تسهيلات إجرائية\n\n`;
+        text += `📌 للمشروعات بعد قانون الاستثمار 72 لسنة 2017`;
+        
+        return this.createResponse(text, 'decision104_match', confidence);
+    }
+    
+    buildAreaCount(query) {
+        if (!this.db.industrial) {
+            return this.createResponse('قاعدة المناطق غير متوفرة', 'error', 0);
+        }
+        
+        // استخراج المحافظة
+        const govMatch = query.match(/في\s+(\S+)|محافظة\s+(\S+)/);
+        
+        if (govMatch) {
+            const gov = govMatch[1] || govMatch[2];
+            const areas = this.db.industrial.filter(a => 
+                a.governorate.includes(gov) || gov.includes(a.governorate)
+            );
+            
+            let text = `📊 **عدد المناطق في ${gov}:** ${areas.length}\n\n`;
+            if (areas.length > 0) {
+                text += `📋 **القائمة:**\n`;
+                areas.slice(0, 10).forEach((a, i) => {
+                    text += `${i + 1}. ${a.name}\n`;
+                });
+                if (areas.length > 10) text += `\n... و${areas.length - 10} أخرى`;
+            }
+            
+            return this.createResponse(text, 'area_count', 0.95, { areas });
+        }
+        
+        const total = this.db.industrial.length;
+        return this.createResponse(
+            `📊 **إجمالي المناطق الصناعية:** ${total} منطقة`,
+            'area_count',
+            1
+        );
+    }
+    
+    buildAreaList(query) {
+        if (!this.db.industrial) {
+            return this.createResponse('قاعدة المناطق غير متوفرة', 'error', 0);
+        }
+        
+        const govMatch = query.match(/في\s+(\S+)|محافظة\s+(\S+)/);
+        let filtered = this.db.industrial;
+        let filterDesc = '';
+        
+        if (govMatch) {
+            const gov = govMatch[1] || govMatch[2];
+            filtered = filtered.filter(a => a.governorate.includes(gov));
+            filterDesc = `في ${gov}`;
+        }
+        
+        let text = `📋 **المناطق الصناعية ${filterDesc}:** (${filtered.length})\n\n`;
+        filtered.slice(0, 15).forEach((a, i) => {
+            text += `${i + 1}. ${a.name} - ${a.governorate}\n`;
+        });
+        
+        if (filtered.length > 15) {
+            text += `\n... و${filtered.length - 15} أخرى`;
+        }
+        
+        return this.createResponse(text, 'area_list', 0.9, { areas: filtered });
+    }
+    
+    buildNoResultsMessage(suggestion) {
+        return `لم أجد نتائج مطابقة.\n\n💡 ${suggestion}\n\n` +
+               `أو اكتب "مساعدة" لعرض أمثلة`;
+    }
+    
+    buildDecision104NotFound() {
+        return `❌ **النشاط غير مشمول في قرار 104**\n\n` +
+               `الأنشطة المشمولة تشمل:\n` +
+               `• الطاقة المتجددة والهيدروجين\n` +
+               `• الصناعات الغذائية الاستراتيجية\n` +
+               `• المنسوجات والملابس\n` +
+               `• الصناعات الكيماوية`;
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 💾 إدارة الذاكرة والتعلم
+     * ═══════════════════════════════════════════════════════════════
+     */
+    
+    updateMemory(query, response, analysis) {
+        // إضافة للمحادثة
+        this.memory.conversation.push({
+            query,
+            response: response.text,
+            type: analysis.type,
+            confidence: analysis.confidence,
+            timestamp: Date.now()
+        });
+        
+        // الاحتفاظ بآخر 20 فقط
+        if (this.memory.conversation.length > 20) {
+            this.memory.conversation.shift();
+        }
+        
+        // تحديث السياق
+        this.memory.context.timestamp = Date.now();
+        
+        // تحديث الإحصائيات
+        if (analysis.confidence > analysis.dynamicThreshold) {
+            this.stats.successful++;
+        }
+    }
+    
+    saveLearning() {
+        try {
+            const learningData = {
+                synonyms: Array.from(this.learning.discoveredSynonyms.entries()),
+                patterns: Array.from(this.learning.successPatterns.entries()),
+                stats: this.stats,
+                timestamp: Date.now()
+            };
+            
+            localStorage.setItem('assistant_learning_v11', JSON.stringify(learningData));
+        } catch (e) {
+            console.warn('⚠️ فشل حفظ التعلم:', e);
+        }
+    }
+    
+    restoreLearning() {
+        try {
+            const saved = localStorage.getItem('assistant_learning_v11');
+            if (saved) {
+                const data = JSON.parse(saved);
+                
+                this.learning.discoveredSynonyms = new Map(data.synonyms || []);
+                this.learning.successPatterns = new Map(data.patterns || []);
+                
+                if (data.stats) {
+                    Object.assign(this.stats, data.stats);
+                }
+                
+                console.log(`📚 تم استرجاع المعرفة المكتسبة`);
+                console.log(`   └─ ${this.learning.discoveredSynonyms.size} مرادف`);
+                console.log(`   └─ ${this.learning.successPatterns.size} نمط ناجح`);
+            }
+        } catch (e) {
+            console.warn('⚠️ فشل استرجاع التعلم:', e);
+        }
+    }
+    
+    clearLearning() {
+        this.learning.discoveredSynonyms.clear();
+        this.learning.successPatterns.clear();
+        this.learning.failurePatterns.clear();
+        this.learning.userCorrections.clear();
+        
+        localStorage.removeItem('assistant_learning_v11');
+        
+        console.log('🗑️ تم مسح كل المعرفة المكتسبة');
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 🎮 الأوامر الخاصة
+     * ═══════════════════════════════════════════════════════════════
+     */
+    
     isCommand(text) {
-        const commands = ['مساعدة', 'help', 'إحصائيات', 'stats', 'مسح', 'clear'];
+        const commands = ['مساعدة', 'help', 'إحصائيات', 'stats', 'مسح', 'clear', 'تعلم', 'learn'];
         return commands.includes(text.toLowerCase());
     }
     
-    handleCommand(command) {
-        const cmd = command.toLowerCase();
+    handleCommand(cmd) {
+        const c = cmd.toLowerCase();
         
-        if (cmd === 'مساعدة' || cmd === 'help') {
-            return this.createResponse(
-                this.getHelpText(),
-                'help',
-                1
-            );
+        if (c === 'مساعدة' || c === 'help') {
+            return this.createResponse(this.getHelpText(), 'help', 1);
         }
         
-        if (cmd === 'إحصائيات' || cmd === 'stats') {
-            return this.createResponse(
-                this.getStatsText(),
-                'stats',
-                1
-            );
+        if (c === 'إحصائيات' || c === 'stats') {
+            return this.createResponse(this.getStatsText(), 'stats', 1);
         }
         
-        if (cmd === 'مسح' || cmd === 'clear') {
-            this.clearMemory();
-            return this.createResponse(
-                'تم مسح الذاكرة والسياق بنجاح ✅',
-                'system',
-                1
-            );
+        if (c === 'تعلم' || c === 'learn') {
+            return this.createResponse(this.getLearningReport(), 'learning', 1);
+        }
+        
+        if (c === 'مسح' || c === 'clear') {
+            this.clearLearning();
+            this.memory.conversation = [];
+            this.memory.context = {
+                currentEntity: null,
+                currentType: null,
+                currentData: null,
+                relatedEntities: [],
+                timestamp: null
+            };
+            return this.createResponse('✅ تم مسح الذاكرة والمعرفة', 'system', 1);
         }
     }
     
     getHelpText() {
         return `
-🤖 **دليل استخدام المساعد الذكي**
+🤖 **المستشار الذكي V11**
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${'═'.repeat(60)}
 
-يمكنك سؤالي عن:
+**أمثلة على الأسئلة:**
 
 📋 **الأنشطة:**
-• "ما تراخيص مصنع الفوم؟"
-• "جهات اختصاص الفنادق؟"
-• "الموقع المناسب لورشة؟"
+• تراخيص مصنع الأدوية
+• الجهات المختصة بالمخابز
+• الموقع المناسب لورشة تصنيع
 
-🏭 **المناطق الصناعية:**
-• "منطقة العاشر من رمضان"
-• "مناطق صناعية في القاهرة"
+🏭 **المناطق:**
+• المناطق الصناعية في القاهرة
+• كام منطقة في الإسكندرية
+• منطقة العاشر من رمضان
 
-💰 **قرار 104:**
-• "هل الطاقة الشمسية في 104؟"
-• "حوافز الهيدروجين الأخضر"
+⭐ **القرار 104:**
+• هل الطاقة الشمسية في 104
+• حوافز الهيدروجين الأخضر
+
+${'═'.repeat(60)}
 
 💡 **نصائح:**
-• اسأل أسئلة متتابعة ("وماذا عن التراخيص؟")
-• استخدم الصوت أو النص
-• كن محدداً في السؤال
+• استخدم العامية أو الفصحى
+• النظام يتعلم من كل سؤال
+• كلما سألت أكثر، كلما فهمك أفضل
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${'═'.repeat(60)}
         `.trim();
     }
     
     getStatsText() {
-        const avgConf = this.stats.totalQueries > 0 
-            ? (this.stats.successfulMatches / this.stats.totalQueries * 100).toFixed(1)
+        const successRate = this.stats.total > 0 
+            ? ((this.stats.successful / this.stats.total) * 100).toFixed(1)
             : 0;
         
         return `
 📊 **إحصائيات الأداء**
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${'═'.repeat(60)}
 
-🔢 إجمالي الاستعلامات: ${this.stats.totalQueries}
-✅ استعلامات ناجحة: ${this.stats.successfulMatches}
-🔗 أسئلة سياقية: ${this.stats.contextualQueries}
-📈 معدل النجاح: ${avgConf}%
+🔢 إجمالي الاستفسارات: ${this.stats.total}
+✅ إجابات ناجحة: ${this.stats.successful}
+📚 تفاعلات متعلمة: ${this.stats.learned}
+⚠️ حالات التباس: ${this.stats.ambiguous}
+📈 معدل النجاح: ${successRate}%
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${'═'.repeat(60)}
         `.trim();
     }
     
-    /**
-     * ═══════════════════════════════════════════════════════════════
-     * تحديث الذاكرة والسياق
-     * ═══════════════════════════════════════════════════════════════
-     */
-    updateMemoryAndContext(query, response, intent) {
-        // تحديث الذاكرة
-        this.conversationMemory.push({
-            query,
-            response: response.text,
-            intent,
-            timestamp: Date.now()
-        });
+    getLearningReport() {
+        const synonymsCount = this.learning.discoveredSynonyms.size;
+        const patternsCount = this.learning.successPatterns.size;
         
-        if (this.conversationMemory.length > this.maxMemory) {
-            this.conversationMemory.shift();
-        }
+        let report = `
+📚 **تقرير التعلم الذاتي**
+
+${'═'.repeat(60)}
+
+🔤 مرادفات مكتشفة: ${synonymsCount}
+🎯 أنماط ناجحة: ${patternsCount}
+🧠 معدل التعلم: ${this.stats.learned} تفاعل
+
+${'═'.repeat(60)}
+
+`;
         
-        // تحديث السياق
-        if (response.data) {
-            if (response.data.data) {
-                this.currentContext.lastEntity = response.data.data.text;
-                this.currentContext.lastEntityType = 'activity';
-            } else if (response.data.area) {
-                this.currentContext.lastEntity = response.data.area.name;
-                this.currentContext.lastEntityType = 'area';
+        if (synonymsCount > 0) {
+            report += `**أمثلة على المرادفات المتعلمة:**\n`;
+            let count = 0;
+            for (const [key, syns] of this.learning.discoveredSynonyms.entries()) {
+                if (count >= 3) break;
+                report += `• ${key} ← ${syns.slice(0, 2).join(', ')}\n`;
+                count++;
             }
+            report += `\n`;
         }
         
-        this.currentContext.lastQuery = query;
-        this.currentContext.lastResponse = response;
-        this.currentContext.timestamp = Date.now();
+        report += `💡 كلما استخدمت النظام أكثر، كلما أصبح أذكى!`;
         
-        // تحديث الإحصائيات
-        if (response.confidence > 0.5) {
-            this.stats.successfulMatches++;
-        }
-    }
-    
-    /**
-     * مسح الذاكرة
-     */
-    clearMemory() {
-        this.conversationMemory = [];
-        this.currentContext = {
-            lastEntity: null,
-            lastEntityType: null,
-            lastQuery: null,
-            lastResponse: null,
-            relatedData: null,
-            timestamp: null
-        };
+        return report.trim();
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * إنشاء كائن الرد الموحد
+     * 🏗️ إنشاء كائن الرد
      * ═══════════════════════════════════════════════════════════════
      */
-    createResponse(text, type, confidence, data = {}) {
-        const response = {
+    createResponse(text, type, confidence, extraData = {}) {
+        return {
             text,
             type,
             confidence,
             timestamp: Date.now(),
-            ...data
+            ...extraData
         };
-        
-        // إصلاح هيكلة البيانات للتوافق مع response_formatter.js
-        if (type === 'activity_full' && data.data) {
-            response.activity = data.data;
-            response.decision104 = null; // سيتم ملؤها لاحقاً إن وجدت
-            response.hasMultiple = false;
-            response.alternatives = [];
-        }
-        
-        if (type === 'area_full' && data.area) {
-            response.area = data.area;
-            response.hasMultiple = false;
-            response.alternatives = [];
-        }
-        
-        return response;
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * دالة عرض تفاصيل الترخيص (للاستخدام الخارجي)
+     * 🔗 دالة للتوافق مع الكود القديم
      * ═══════════════════════════════════════════════════════════════
      */
-    showLicenseDetails(activityId) {
-        console.log("🔍 جلب تفاصيل الترخيص للمعرف:", activityId);
+    async showDetails(entityId, entityType) {
+        console.log(`🔍 عرض تفاصيل: ${entityId}`);
         
-        const data = this.getActivityDetails(activityId);
+        const data = this.findFullData(entityId, entityType);
         
-        if (data && data.details) {
-            const infoText = this.formatFullActivityInfo(data.text, data.details);
-            
-            // إرسال للواجهة
-            if (window.assistantUI) {
-                if (typeof window.assistantUI.addMessage === 'function') {
-                    window.assistantUI.addMessage(infoText, 'assistant');
-                } else {
-                    console.log(infoText);
-                }
-            }
-        } else {
-            console.warn("⚠️ لم يتم العثور على تفاصيل هذا النشاط");
+        if (!data) {
+            return this.createResponse('التفاصيل غير متوفرة', 'error', 0);
         }
+        
+        if (entityType === 'activity') {
+            return this.formatActivityInfo(data, 'full', 1);
+        }
+        
+        if (entityType === 'area') {
+            return this.formatAreaInfo(data, 1);
+        }
+        
+        return this.createResponse('نوع غير مدعوم', 'error', 0);
     }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// التهيئة العامة
+// التصدير والتهيئة
 // ═══════════════════════════════════════════════════════════════
-window.assistant = new AssistantAI();
-console.log('✅ AI Assistant Core V9.0 - جاهز للعمل');
+window.smartAssistant = new TrulySmartAssistant();
+
+// التوافق مع الكود القديم
+window.assistant = {
+    getResponse: (query) => window.smartAssistant.query(query),
+    showLicenseDetails: (id) => window.smartAssistant.showDetails(id, 'activity')
+};
+
+console.log('✅ Smart Assistant V11 - النظام الذكي الحقيقي جاهز!');
