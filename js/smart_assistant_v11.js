@@ -353,12 +353,25 @@ class TrulySmartAssistant {
     buildActivityResponse(analysis, originalQuery) {
         const activityData = this.findFullData(analysis.primaryResult.id, 'activity');
         
-        if (!activityData || !activityData.details) {
+        if (!activityData) {
+            console.error(`❌ لم يتم العثور على: ${analysis.primaryResult.id}`);
             return this.createResponse(
-                `وجدت النشاط "${analysis.primaryResult.id}" لكن التفاصيل غير متوفرة.`,
+                `وجدت النشاط "${analysis.primaryResult.id}" لكن التفاصيل غير متوفرة في قاعدة البيانات المحلية.`,
                 'partial',
                 analysis.confidence
             );
+        }
+        
+        // 🔥 التحقق من وجود details
+        if (!activityData.details) {
+            console.warn(`⚠️ النشاط "${activityData.text}" بدون تفاصيل - إنشاء افتراضي`);
+            activityData.details = {
+                act: 'لا توجد معلومات تفصيلية متاحة حالياً',
+                req: 'يرجى مراجعة الجهة المختصة',
+                auth: 'غير محدد',
+                loc: 'غير محدد',
+                leg: 'خاضع للقوانين العامة'
+            };
         }
         
         // حفظ في الذاكرة
@@ -393,8 +406,16 @@ class TrulySmartAssistant {
         const areaData = this.findFullData(analysis.primaryResult.id, 'area');
         
         if (!areaData) {
+            console.error(`❌ لم يتم العثور على منطقة: ${analysis.primaryResult.id}`);
+            
+            // 🔥 محاولة البحث المباشر إذا كان السؤال عن قائمة
+            if (/منطقة|مناطق/.test(originalQuery)) {
+                return this.buildAreaList(originalQuery);
+            }
+            
             return this.createResponse(
-                `وجدت منطقة "${analysis.primaryResult.id}" لكن التفاصيل غير متوفرة.`,
+                `وجدت إشارة لـ "${analysis.primaryResult.id}" لكن التفاصيل غير متوفرة.\n\n` +
+                `💡 جرب: "المناطق الصناعية في القاهرة" أو "كام منطقة في الإسكندرية"`,
                 'partial',
                 analysis.confidence
             );
@@ -766,7 +787,7 @@ class TrulySmartAssistant {
      */
     
     formatActivityInfo(data, infoType, confidence) {
-        const d = data.details;
+        const d = data.details || {};
         let text = '';
         
         if (infoType === 'licenses') {
@@ -798,7 +819,14 @@ class TrulySmartAssistant {
             text += `${'═'.repeat(60)}\n💡 اسألني عن أي جزء محدد`;
         }
         
-        return this.createResponse(text, 'activity_full', confidence, { data });
+        // 🔥 هيكل متوافق مع response_formatter.js
+        return this.createResponse(text, 'activity_full', confidence, { 
+            activity: data,           // للتوافق مع formatter
+            data: data,              // احتياطي
+            decision104: null,
+            hasMultiple: false,
+            alternatives: []
+        });
     }
     
     formatAreaInfo(data, confidence) {
@@ -814,7 +842,12 @@ class TrulySmartAssistant {
         
         text += `${'═'.repeat(60)}`;
         
-        return this.createResponse(text, 'area_full', confidence, { area: data });
+        // 🔥 هيكل متوافق مع response_formatter.js
+        return this.createResponse(text, 'area_full', confidence, { 
+            area: data,
+            hasMultiple: false,
+            alternatives: []
+        });
     }
     
     formatDecision104Info(activity, sector, category, confidence) {
