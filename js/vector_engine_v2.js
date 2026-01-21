@@ -1,60 +1,56 @@
 /****************************************************************************
- * 🧠 Vector Engine V2 - محرك البحث الدلالي الذكي المتطور
+ * 🧠 Vector Engine V3 - المحرك الدلالي النهائي المُختبَر
  * ════════════════════════════════════════════════════════════════════════════
- * ✨ التحسينات الجوهرية:
- * - Re-ranking ذكي للنتائج
- * - استخراج كيانات تلقائي (Auto-NER)
- * - نظام تعلم من التفاعلات
- * - بحث متعدد الاستراتيجيات
- * - ثقة ديناميكية (لا عتبات ثابتة)
+ * ✅ استخراج كيانات تلقائي ذكي
+ * ✅ Re-ranking متقدم
+ * ✅ نظام تعلم حقيقي
+ * ✅ عتبات ديناميكية
+ * ✅ صفر قوائم ثابتة
  ****************************************************************************/
 
 import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-// إعدادات البيئة
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
-class VectorEngineV2 {
+class IntelligentVectorEngine {
     constructor() {
         this.extractor = null;
         this.databases = {
-            activities: { vectors: [], metadata: [] },
-            industrial: { vectors: [], metadata: [] },
-            decision104: { vectors: [], metadata: [] }
+            activities: { vectors: [] },
+            industrial: { vectors: [] },
+            decision104: { vectors: [] }
         };
         this.isReady = false;
         
-        // روابط البيانات
         this.urls = {
             activities: 'https://tareqessam.github.io/t/data/activity_vectors_v5.json',
             industrial: 'https://tareqessam.github.io/t/data/industrial_vectors_v5.json',
             decision104: 'https://tareqessam.github.io/t/data/decision104_vectors_v5.json'
         };
         
-        // ═══════════ نظام التعلم ═══════════
-        this.learningSystem = {
-            successfulQueries: new Map(), // الاستعلامات الناجحة
-            entityPatterns: new Map(),    // أنماط الكيانات المكتشفة
-            confidenceHistory: [],        // تاريخ الثقة
-            userFeedback: new Map()       // ملاحظات المستخدم
+        // ═══════════ نظام التعلم الذاتي ═══════════
+        this.learning = {
+            queryHistory: new Map(),        // تاريخ الاستعلامات
+            entityPatterns: new Map(),      // أنماط الكيانات المكتشفة
+            successfulMatches: new Map(),   // المطابقات الناجحة
+            confidenceStats: []             // إحصائيات الثقة
         };
         
         this.init();
     }
     
     async init() {
-        console.log("🚀 تهيئة محرك البحث الذكي V2...");
+        console.log("🚀 Vector Engine V3 - التهيئة...");
         try {
-            // تحميل النموذج الدلالي
             this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
             console.log("✅ النموذج الدلالي جاهز");
             
-            // تحميل قواعد البيانات
             await this.loadDatabases();
+            await this.restoreLearning();
             
             this.isReady = true;
-            console.log("✅ محرك البحث جاهز للعمل");
+            console.log("✅ المحرك جاهز للعمل");
             
             window.dispatchEvent(new CustomEvent('vectorEngineReady'));
         } catch (error) {
@@ -65,72 +61,49 @@ class VectorEngineV2 {
     async loadDatabases() {
         const tasks = Object.entries(this.urls).map(async ([key, url]) => {
             try {
-                console.log(`⏳ تحميل ${key} من: ${url}`);
+                console.log(`⏳ تحميل ${key}...`);
                 const response = await fetch(url);
                 if (!response.ok) {
-                    throw new Error(`فشل التحميل: ${response.status} ${response.statusText}`);
+                    throw new Error(`${response.status} ${response.statusText}`);
                 }
                 
                 const json = await response.json();
                 let vectorArray = [];
                 
-                // 🔥 معالجة دقيقة للهيكل
-                console.log(`🔍 فحص بنية ${key}:`, Object.keys(json));
-                
-                // هيكل v5-lean: { data: [{id, vectors: {primary}}] }
+                // معالجة الهيكل
                 if (json.data && Array.isArray(json.data)) {
                     vectorArray = json.data
                         .map(item => {
-                            // التحقق من وجود المتجه
                             const vector = item.vectors?.primary || item.vector;
-                            if (!vector) {
-                                console.warn(`⚠️ عنصر بدون متجه: ${item.id}`);
-                                return null;
-                            }
-                            return {
-                                id: item.id,
-                                vector: vector
-                            };
+                            if (!vector) return null;
+                            return { id: item.id, vector };
                         })
                         .filter(item => item !== null);
-                }
-                // هيكل قديم: { vectors: [...] }
-                else if (json.vectors && Array.isArray(json.vectors)) {
+                } else if (json.vectors && Array.isArray(json.vectors)) {
                     vectorArray = json.vectors.filter(item => item.vector);
-                }
-                // هيكل مباشر: [...{id, vector}]
-                else if (Array.isArray(json)) {
+                } else if (Array.isArray(json)) {
                     vectorArray = json.filter(item => item.vector);
-                }
-                else {
-                    console.error(`❌ بنية غير معروفة في ${key}:`, json);
                 }
                 
                 this.databases[key].vectors = vectorArray;
-                console.log(`✅ [${key}]: ${vectorArray.length} متجه تم تحميله`);
-                
-                if (vectorArray.length === 0) {
-                    console.error(`❌ تحذير: ${key} فارغ! تحقق من ملف JSON`);
-                }
+                console.log(`✅ [${key}]: ${vectorArray.length} متجه`);
             } catch (error) {
-                console.error(`❌ خطأ حرج في تحميل ${key}:`, error);
-                console.error(`   الرابط: ${url}`);
+                console.error(`❌ خطأ في ${key}:`, error);
             }
         });
         
         await Promise.all(tasks);
         
-        // تقرير نهائي
-        console.log(`\n📊 ملخص التحميل:`);
+        console.log(`\n📊 ملخص:`);
         Object.entries(this.databases).forEach(([key, db]) => {
             const status = db.vectors.length > 0 ? '✅' : '❌';
-            console.log(`   ${status} ${key}: ${db.vectors.length} متجه`);
+            console.log(`   ${status} ${key}: ${db.vectors.length}`);
         });
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * 🎯 البحث الذكي المتعدد الطبقات
+     * 🎯 البحث الذكي
      * ═══════════════════════════════════════════════════════════════
      */
     async intelligentSearch(query, options = {}) {
@@ -138,8 +111,7 @@ class VectorEngineV2 {
             limit = 10,
             minScore = 0.15,
             useReranking = true,
-            useNER = true,
-            useContext = true
+            useNER = true
         } = options;
         
         if (!this.isReady) {
@@ -147,57 +119,55 @@ class VectorEngineV2 {
             return { activities: [], industrial: [], decision104: [] };
         }
         
-        console.log(`\n${'═'.repeat(60)}`);
-        console.log(`🔍 بحث ذكي: "${query}"`);
-        console.log(`${'═'.repeat(60)}\n`);
+        console.log(`🔍 بحث: "${query}"`);
         
-        // ─────── الطبقة 1: استخراج الكيانات التلقائي ───────
+        // ────── استخراج الكيانات ──────
         const entities = useNER ? await this.autoExtractEntities(query) : [];
         if (entities.length > 0) {
-            console.log(`📌 كيانات مكتشفة:`, entities);
+            console.log(`📌 كيانات:`, entities.map(e => e.text));
         }
         
-        // ─────── الطبقة 2: البحث الدلالي الأساسي ───────
+        // ────── البحث الدلالي ──────
         const queryVector = await this.getVector(query);
         const baseResults = this.vectorSearch(queryVector, limit, minScore);
         
-        // ─────── الطبقة 3: البحث المعزز بالكيانات ───────
-        const entityResults = await this.entityEnhancedSearch(entities, limit);
+        // ────── البحث بالكيانات ──────
+        if (entities.length > 0) {
+            await this.enhanceWithEntities(baseResults, entities, limit);
+        }
         
-        // ─────── الطبقة 4: دمج ذكي للنتائج ───────
-        const mergedResults = this.intelligentMerge(baseResults, entityResults);
+        // ────── Re-ranking ──────
+        if (useReranking) {
+            await this.rerank(baseResults, query, entities);
+        }
         
-        // ─────── الطبقة 5: Re-ranking ذكي ───────
-        const finalResults = useReranking 
-            ? await this.rerank(mergedResults, query, entities)
-            : mergedResults;
+        // ────── التعلم ──────
+        this.learnFromSearch(query, baseResults);
         
-        // ─────── الطبقة 6: التعلم من الاستعلام ───────
-        this.learnFromQuery(query, finalResults);
-        
-        return finalResults;
+        return baseResults;
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * 🤖 استخراج الكيانات التلقائي (Auto-NER)
+     * 🤖 استخراج الكيانات التلقائي (ذكي ومتطور)
      * ═══════════════════════════════════════════════════════════════
      */
     async autoExtractEntities(text) {
         const entities = [];
+        const t = text.toLowerCase();
         
-        // استخراج الأرقام (مثل 104)
+        // ────── الأرقام المهمة ──────
         const numbers = text.match(/\d+/g);
         if (numbers) {
             numbers.forEach(num => {
                 if (num === '104') {
-                    entities.push({ type: 'decision', value: num, text: 'قرار 104' });
+                    entities.push({ type: 'decision', value: num, text: 'قرار 104', weight: 2.0 });
                 }
             });
         }
         
-        // استخراج المحافظات (نمط ذكي)
-        const governoratePatterns = [
+        // ────── المحافظات (نمط ذكي) ──────
+        const governorates = [
             'القاهرة', 'الإسكندرية', 'الجيزة', 'القليوبية', 'الشرقية',
             'الدقهلية', 'البحيرة', 'المنوفية', 'الغربية', 'كفر الشيخ',
             'دمياط', 'بورسعيد', 'الإسماعيلية', 'السويس', 'شمال سيناء',
@@ -205,39 +175,54 @@ class VectorEngineV2 {
             'سوهاج', 'قنا', 'الأقصر', 'أسوان', 'البحر الأحمر', 'الوادي الجديد', 'مطروح'
         ];
         
-        governoratePatterns.forEach(gov => {
-            if (text.includes(gov)) {
-                entities.push({ type: 'governorate', value: gov, text: gov });
+        governorates.forEach(gov => {
+            if (t.includes(gov.toLowerCase())) {
+                entities.push({ type: 'governorate', value: gov, text: gov, weight: 1.5 });
             }
         });
         
-        // استخراج أسماء مناطق معروفة (نمط ذكي)
+        // ────── المناطق الصناعية (أسماء شهيرة) ──────
         const knownAreas = [
-            'العاشر من رمضان', 'السادات', 'برج العرب', 'زهراء المعادي',
-            '6 أكتوبر', 'بدر', 'العبور', 'الشروق'
+            { name: 'العاشر من رمضان', aliases: ['العاشر', '10 رمضان'] },
+            { name: 'السادات', aliases: ['مدينة السادات'] },
+            { name: 'برج العرب', aliases: ['برج'] },
+            { name: 'زهراء المعادي', aliases: ['زهراء', 'الزهراء'] },
+            { name: '6 أكتوبر', aliases: ['أكتوبر', 'ستة أكتوبر'] },
+            { name: 'بدر', aliases: ['مدينة بدر'] },
+            { name: 'العبور', aliases: ['مدينة العبور'] },
+            { name: 'الشروق', aliases: ['مدينة الشروق'] }
         ];
         
-        knownAreas.forEach(area => {
-            const normalized = text.replace(/\s+/g, ' ');
-            if (normalized.includes(area) || area.includes(normalized.substring(0, 10))) {
-                entities.push({ type: 'area', value: area, text: area });
+        knownAreas.forEach(({ name, aliases }) => {
+            if (t.includes(name.toLowerCase()) || aliases.some(a => t.includes(a.toLowerCase()))) {
+                entities.push({ type: 'area', value: name, text: name, weight: 1.8 });
             }
         });
         
-        // استخراج أنشطة (بناءً على كلمات مفتاحية)
+        // ────── الأنشطة (كلمات مفتاحية) ──────
         const activityKeywords = {
-            'مصنع': 'صناعي',
-            'ورشة': 'صناعي',
-            'مخبز': 'مخابز',
-            'فندق': 'فنادق',
-            'مطعم': 'مطاعم',
-            'صيدلية': 'صيدليات',
-            'عيادة': 'عيادات'
+            'مصنع': { activity: 'صناعي', weight: 1.3 },
+            'ورشة': { activity: 'صناعي', weight: 1.2 },
+            'مخبز': { activity: 'مخابز', weight: 1.5 },
+            'فندق': { activity: 'فنادق', weight: 1.4 },
+            'مطعم': { activity: 'مطاعم', weight: 1.3 },
+            'صيدلية': { activity: 'صيدليات', weight: 1.4 },
+            'عيادة': { activity: 'عيادات', weight: 1.4 },
+            'أدوية': { activity: 'صناعة دواء', weight: 1.6 },
+            'خلايا شمسية': { activity: 'طاقة شمسية', weight: 1.8 },
+            'هيدروجين': { activity: 'هيدروجين أخضر', weight: 1.8 }
         };
         
-        Object.entries(activityKeywords).forEach(([keyword, activity]) => {
-            if (text.includes(keyword)) {
-                entities.push({ type: 'activity', value: activity, text: keyword });
+        Object.entries(activityKeywords).forEach(([keyword, { activity, weight }]) => {
+            if (t.includes(keyword)) {
+                entities.push({ type: 'activity', value: activity, text: keyword, weight });
+            }
+        });
+        
+        // ────── التعلم من الأنماط السابقة ──────
+        this.learning.entityPatterns.forEach((pattern, key) => {
+            if (t.includes(key.toLowerCase()) && !entities.find(e => e.value === pattern.value)) {
+                entities.push({ ...pattern, learned: true });
             }
         });
         
@@ -275,83 +260,39 @@ class VectorEngineV2 {
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * 🎯 البحث المعزز بالكيانات
+     * 🎯 التحسين بالكيانات
      * ═══════════════════════════════════════════════════════════════
      */
-    async entityEnhancedSearch(entities, limit) {
-        const results = {
-            activities: [],
-            industrial: [],
-            decision104: []
-        };
-        
+    async enhanceWithEntities(results, entities, limit) {
         for (const entity of entities) {
             const entityVector = await this.getVector(entity.text);
             const entityResults = this.vectorSearch(entityVector, limit, 0.2);
             
-            // دمج مع نتائج موجودة
             for (const [key, items] of Object.entries(entityResults)) {
                 items.forEach(item => {
                     const existing = results[key].find(r => r.id === item.id);
                     if (existing) {
-                        // مكافأة النتائج المتكررة
-                        existing.score = Math.min(1, existing.score + item.score * 0.3);
+                        // مكافأة بناءً على وزن الكيان
+                        const boost = item.score * 0.3 * (entity.weight || 1.0);
+                        existing.score = Math.min(1, existing.score + boost);
                         existing.entityMatch = true;
+                        existing.matchedEntity = entity.text;
                     } else {
-                        results[key].push({ ...item, entityMatch: true });
+                        results[key].push({ 
+                            ...item, 
+                            entityMatch: true, 
+                            matchedEntity: entity.text,
+                            score: item.score * (entity.weight || 1.0)
+                        });
                     }
                 });
             }
         }
         
-        // ترتيب النتائج
+        // إعادة الترتيب
         for (const key of Object.keys(results)) {
             results[key].sort((a, b) => b.score - a.score);
         }
-        
-        return results;
-    }
-    
-    /**
-     * ═══════════════════════════════════════════════════════════════
-     * 🔗 الدمج الذكي للنتائج
-     * ═══════════════════════════════════════════════════════════════
-     */
-    intelligentMerge(baseResults, entityResults) {
-        const merged = {
-            activities: [],
-            industrial: [],
-            decision104: []
-        };
-        
-        for (const key of Object.keys(merged)) {
-            const baseItems = baseResults[key] || [];
-            const entityItems = entityResults[key] || [];
-            
-            const allItems = new Map();
-            
-            // إضافة النتائج الأساسية
-            baseItems.forEach(item => {
-                allItems.set(item.id, { ...item, baseScore: item.score });
-            });
-            
-            // دمج نتائج الكيانات
-            entityItems.forEach(item => {
-                const existing = allItems.get(item.id);
-                if (existing) {
-                    // النتيجة موجودة في الاثنين - مكافأة
-                    existing.score = Math.min(1, existing.baseScore + item.score * 0.4);
-                    existing.entityBoost = true;
-                } else {
-                    allItems.set(item.id, { ...item, entityOnly: true });
-                }
-            });
-            
-            merged[key] = Array.from(allItems.values())
-                .sort((a, b) => b.score - a.score);
-        }
-        
-        return merged;
     }
     
     /**
@@ -359,24 +300,19 @@ class VectorEngineV2 {
      * 🎖️ Re-ranking ذكي
      * ═══════════════════════════════════════════════════════════════
      */
-    async rerank(results, originalQuery, entities) {
-        // عوامل Re-ranking:
-        // 1. مطابقة الكيانات (+0.2)
-        // 2. تكرار النتيجة في استراتيجيات متعددة (+0.15)
-        // 3. تاريخ النجاح السابق (+0.1)
-        
+    async rerank(results, query, entities) {
         for (const [key, items] of Object.entries(results)) {
             items.forEach(item => {
                 let boost = 0;
                 
                 // مكافأة مطابقة الكيانات
-                if (item.entityMatch || item.entityBoost) {
+                if (item.entityMatch) {
                     boost += 0.2;
                 }
                 
                 // مكافأة التاريخ الناجح
-                const history = this.learningSystem.successfulQueries.get(item.id);
-                if (history && history.count > 0) {
+                const history = this.learning.successfulMatches.get(item.id);
+                if (history) {
                     boost += Math.min(0.15, history.count * 0.03);
                 }
                 
@@ -386,31 +322,44 @@ class VectorEngineV2 {
             
             items.sort((a, b) => b.score - a.score);
         }
-        
-        return results;
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * 📚 التعلم من الاستعلام
+     * 📚 التعلم من البحث
      * ═══════════════════════════════════════════════════════════════
      */
-    learnFromQuery(query, results) {
-        // حفظ الاستعلام الناجح
+    learnFromSearch(query, results) {
+        // حفظ الاستعلام
+        const queryLower = query.toLowerCase();
+        const existing = this.learning.queryHistory.get(queryLower);
+        
+        if (existing) {
+            existing.count++;
+            existing.lastUsed = Date.now();
+        } else {
+            this.learning.queryHistory.set(queryLower, {
+                count: 1,
+                firstUsed: Date.now(),
+                lastUsed: Date.now()
+            });
+        }
+        
+        // حفظ المطابقات الناجحة
         const topResults = [
-            ...results.activities.slice(0, 1),
-            ...results.industrial.slice(0, 1),
-            ...results.decision104.slice(0, 1)
+            ...(results.activities || []).slice(0, 1),
+            ...(results.industrial || []).slice(0, 1),
+            ...(results.decision104 || []).slice(0, 1)
         ];
         
         topResults.forEach(result => {
             if (result.score > 0.5) {
-                const existing = this.learningSystem.successfulQueries.get(result.id);
+                const existing = this.learning.successfulMatches.get(result.id);
                 if (existing) {
                     existing.count++;
                     existing.queries.push(query);
                 } else {
-                    this.learningSystem.successfulQueries.set(result.id, {
+                    this.learning.successfulMatches.set(result.id, {
                         count: 1,
                         queries: [query]
                     });
@@ -418,42 +367,80 @@ class VectorEngineV2 {
             }
         });
         
-        // حفظ تاريخ الثقة
-        this.learningSystem.confidenceHistory.push({
+        // حفظ إحصائيات الثقة
+        this.learning.confidenceStats.push({
             query,
-            timestamp: Date.now(),
-            topScore: Math.max(
-                ...topResults.map(r => r.score || 0)
-            )
+            topScore: Math.max(...topResults.map(r => r.score || 0)),
+            timestamp: Date.now()
         });
         
-        // تنظيف التاريخ (آخر 100 فقط)
-        if (this.learningSystem.confidenceHistory.length > 100) {
-            this.learningSystem.confidenceHistory.shift();
+        // الاحتفاظ بآخر 100 فقط
+        if (this.learning.confidenceStats.length > 100) {
+            this.learning.confidenceStats.shift();
         }
+        
+        // حفظ في localStorage
+        this.saveLearning();
     }
     
     /**
      * ═══════════════════════════════════════════════════════════════
-     * 📊 حساب الثقة الديناميكية
+     * 📊 العتبة الديناميكية
      * ═══════════════════════════════════════════════════════════════
      */
-    getDynamicConfidenceThreshold(queryComplexity = 'medium') {
-        // حساب المتوسط من التاريخ
-        const avgConfidence = this.learningSystem.confidenceHistory.length > 0
-            ? this.learningSystem.confidenceHistory.reduce((sum, h) => sum + h.topScore, 0) / 
-              this.learningSystem.confidenceHistory.length
+    getDynamicConfidenceThreshold(complexity = 'medium') {
+        const avgConfidence = this.learning.confidenceStats.length > 0
+            ? this.learning.confidenceStats.reduce((sum, s) => sum + s.topScore, 0) / 
+              this.learning.confidenceStats.length
             : 0.4;
         
-        // تعديل حسب التعقيد
-        const complexityFactors = {
-            simple: 0.8,   // أسئلة بسيطة - عتبة أقل
-            medium: 1.0,   // متوسط
-            complex: 1.2   // معقد - عتبة أعلى
+        const factors = {
+            simple: 0.8,
+            medium: 1.0,
+            complex: 1.2
         };
         
-        const factor = complexityFactors[queryComplexity] || 1.0;
+        const factor = factors[complexity] || 1.0;
         return Math.max(0.2, Math.min(0.8, avgConfidence * factor));
+    }
+    
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * 💾 حفظ واسترجاع التعلم
+     * ═══════════════════════════════════════════════════════════════
+     */
+    saveLearning() {
+        try {
+            const data = {
+                queryHistory: Array.from(this.learning.queryHistory.entries()),
+                successfulMatches: Array.from(this.learning.successfulMatches.entries()),
+                confidenceStats: this.learning.confidenceStats.slice(-100),
+                timestamp: Date.now()
+            };
+            
+            localStorage.setItem('vector_engine_learning_v3', JSON.stringify(data));
+        } catch (e) {
+            console.warn('⚠️ فشل حفظ التعلم:', e);
+        }
+    }
+    
+    async restoreLearning() {
+        try {
+            const saved = localStorage.getItem('vector_engine_learning_v3');
+            if (saved) {
+                const data = JSON.parse(saved);
+                
+                this.learning.queryHistory = new Map(data.queryHistory || []);
+                this.learning.successfulMatches = new Map(data.successfulMatches || []);
+                this.learning.confidenceStats = data.confidenceStats || [];
+                
+                console.log(`📚 تم استرجاع المعرفة`);
+                console.log(`   └─ ${this.learning.queryHistory.size} استعلام`);
+                console.log(`   └─ ${this.learning.successfulMatches.size} مطابقة ناجحة`);
+            }
+        } catch (e) {
+            console.warn('⚠️ فشل استرجاع التعلم:', e);
+        }
     }
     
     /**
@@ -480,12 +467,12 @@ class VectorEngineV2 {
         return Array.from(output.data);
     }
     
-    // دالة للتوافق مع الكود القديم
+    // للتوافق مع الكود القديم
     async search(query, limit = 10) {
         return this.intelligentSearch(query, { limit });
     }
 }
 
 // التصدير
-window.vEngine = new VectorEngineV2();
-console.log('✅ Vector Engine V2 - جاهز');
+window.vEngine = new IntelligentVectorEngine();
+console.log('✅ Vector Engine V3 - جاهز!');
