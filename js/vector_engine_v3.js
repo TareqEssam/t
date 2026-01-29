@@ -67,10 +67,21 @@ class IntelligentVectorEngine {
                     throw new Error(`${response.status} ${response.statusText}`);
                 }
                 
-                const json = await response.json();
+                // 1. قراءة الملف كنص بدلاً من JSON مباشرة لتجنب خطأ التعليقات
+                let text = await response.text();
+                
+                // 2. تنظيف النص من التعليقات (/* */ أو //) ومن أي تعريف متغير (مثل const data =)
+                // هذا الجزء يحول ملف الـ JS إلى صيغة JSON صالحة
+                const cleanJson = text
+                    .replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '') // حذف التعليقات
+                    .replace(/^(export\s+)?(const|let|var)\s+\w+\s*=\s*/, '') // حذف تعريف المتغيرات إن وجدت
+                    .replace(/;?$/, '') // حذف الفاصلة المنقوطة في النهاية
+                    .trim();
+
+                const json = JSON.parse(cleanJson);
                 let vectorArray = [];
                 
-                // معالجة الهيكل
+                // معالجة الهيكل (كما في الكود الأصلي)
                 if (json.data && Array.isArray(json.data)) {
                     vectorArray = json.data
                         .map(item => {
@@ -476,4 +487,5 @@ class IntelligentVectorEngine {
 // التصدير
 window.vEngine = new IntelligentVectorEngine();
 console.log('✅ Vector Engine V3 - جاهز!');
+
 
