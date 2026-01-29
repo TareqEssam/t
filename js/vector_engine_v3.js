@@ -24,9 +24,9 @@ class IntelligentVectorEngine {
         this.isReady = false;
         
         this.urls = {
-            activities: 'https://tareqessam.github.io/t/data/activity_vectors_v5.json',
-            industrial: 'https://tareqessam.github.io/t/data/industrial_vectors_v5.json',
-            decision104: 'https://tareqessam.github.io/t/data/decision104_vectors_v5.json'
+            activities: 'https://tareqessam.github.io/t/data/activity_vectors_v5.js',
+            industrial: 'https://tareqessam.github.io/t/data/industrial_vectors_v5.js',
+            decision104: 'https://tareqessam.github.io/t/data/decision104_vectors_v5.js'
         };
         
         // ═══════════ نظام التعلم الذاتي ═══════════
@@ -476,3 +476,4 @@ class IntelligentVectorEngine {
 // التصدير
 window.vEngine = new IntelligentVectorEngine();
 console.log('✅ Vector Engine V3 - جاهز!');
+
